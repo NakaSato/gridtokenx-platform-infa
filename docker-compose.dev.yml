@@ -1,0 +1,90 @@
+
+services:
+  # API Gateway - Development mode
+  apigateway:
+    build:
+      context: ./gridtokenx-apigateway
+      dockerfile: Dockerfile
+      target: builder
+    volumes:
+      - ./gridtokenx-apigateway:/app
+      - cargo_cache:/usr/local/cargo/registry
+    environment:
+      RUST_LOG: debug
+      RUST_BACKTRACE: 1
+    command: cargo watch -x run
+
+  # Explorer - Development mode with hot reload
+  explorer:
+    build:
+      context: ./gridtokenx-explorer
+      dockerfile: Dockerfile
+      target: deps
+    volumes:
+      - ./gridtokenx-explorer:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      NODE_ENV: development
+    command: bun run dev
+    ports:
+      - "3000:4000"
+
+  # Trading - Development mode with hot reload
+  trading:
+    build:
+      context: ./gridtokenx-trading
+      dockerfile: Dockerfile
+      target: deps
+    volumes:
+      - ./gridtokenx-trading:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+    ports:
+      - "3001:3000"
+
+  # Website - Development mode with hot reload
+  website:
+    build:
+      context: ./gridtokenx-website
+      dockerfile: Dockerfile
+      target: deps
+    volumes:
+      - ./gridtokenx-website:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      NODE_ENV: development
+    command: bun run dev
+    ports:
+      - "3002:3000"
+
+  # Smart Meter Simulator - Development mode with auto-reload
+  smartmeter-simulator:
+    volumes:
+      - ./gridtokenx-smartmeter-simulator:/app
+    environment:
+      RELOAD: "true"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Anchor - Development mode
+  anchor:
+    build:
+      context: ./gridtokenx-anchor
+      dockerfile: Dockerfile
+      target: dependencies
+    volumes:
+      - ./gridtokenx-anchor:/app
+      - /app/node_modules
+      - /app/.anchor
+      - /app/target
+    ports:
+      - "8899:8899"
+      - "8900:8900"
+    command: anchor test --skip-local-validator
+
+volumes:
+  cargo_cache:

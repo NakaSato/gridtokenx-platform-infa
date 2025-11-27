@@ -1,0 +1,155 @@
+
+services:
+  # PostgreSQL Database for API Gateway
+  postgres:
+    image: postgres:16-alpine
+    container_name: gridtokenx-postgres
+    environment:
+      POSTGRES_DB: gridtokenx
+      POSTGRES_USER: gridtokenx
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - gridtokenx-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gridtokenx"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache for API Gateway
+  redis:
+    image: redis:7-alpine
+    container_name: gridtokenx-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - gridtokenx-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # API Gateway (Rust/Axum)
+  apigateway:
+    build:
+      context: ./gridtokenx-apigateway
+      dockerfile: Dockerfile
+    container_name: gridtokenx-apigateway
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql://gridtokenx:${POSTGRES_PASSWORD:-changeme}@postgres:5432/gridtokenx
+      REDIS_URL: redis://redis:6379
+      RUST_LOG: ${RUST_LOG:-info}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # Explorer (Next.js)
+  explorer:
+    build:
+      context: ./gridtokenx-explorer
+      dockerfile: Dockerfile
+    container_name: gridtokenx-explorer
+    ports:
+      - "3000:4000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      NEXT_PUBLIC_SOLANA_RPC_URL: ${NEXT_PUBLIC_SOLANA_RPC_URL:-https://api.devnet.solana.com}
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # Trading Platform (Next.js)
+  trading:
+    build:
+      context: ./gridtokenx-trading
+      dockerfile: Dockerfile
+    container_name: gridtokenx-trading
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      NEXT_PUBLIC_SOLANA_RPC_URL: ${NEXT_PUBLIC_SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      NEXT_PUBLIC_PYTH_PRICE_SERVICE_URL: ${NEXT_PUBLIC_PYTH_PRICE_SERVICE_URL:-https://hermes.pyth.network}
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # Website (Next.js with Bun)
+  website:
+    build:
+      context: ./gridtokenx-website
+      dockerfile: Dockerfile
+    container_name: gridtokenx-website
+    ports:
+      - "3002:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # Smart Meter Simulator (Python/FastAPI)
+  smartmeter-simulator:
+    build:
+      context: ./gridtokenx-smartmeter-simulator
+      dockerfile: Dockerfile
+    container_name: gridtokenx-smartmeter
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://gridtokenx:${POSTGRES_PASSWORD:-changeme}@postgres:5432/gridtokenx
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-}
+      INFLUXDB_URL: ${INFLUXDB_URL:-}
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:-}
+      INFLUXDB_ORG: ${INFLUXDB_ORG:-}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # Anchor (Solana Development - Optional, for testing)
+  # Uncomment if you need to run Anchor tests in Docker
+  # anchor:
+  #   build:
+  #     context: ./gridtokenx-anchor
+  #     dockerfile: Dockerfile
+  #   container_name: gridtokenx-anchor
+  #   ports:
+  #     - "8899:8899"
+  #     - "8900:8900"
+  #   volumes:
+  #     - ./gridtokenx-anchor:/app
+  #     - anchor_cache:/root/.cache
+  #   networks:
+  #     - gridtokenx-network
+  #   restart: unless-stopped
+
+networks:
+  gridtokenx-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  # anchor_cache:

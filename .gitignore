@@ -1,9 +1,9 @@
-/gridtokenx-apigateway/**
-/gridtokenx-explorer/**
-/gridtokenx-trading/**
-/gridtokenx-website/**
-/gridtokenx-smartmeter-simulator/**
-/gridtokenx-anchor/**
+/gridtokenx-apigateway
+/gridtokenx-explorer
+/gridtokenx-trading
+/gridtokenx-website
+/gridtokenx-smartmeter-simulator
+/gridtokenx-anchor
 
 # Environment Variables
 .env

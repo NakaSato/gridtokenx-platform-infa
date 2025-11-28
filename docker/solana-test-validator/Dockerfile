@@ -1,52 +1,35 @@
-FROM ubuntu:22.04
+# Solana Test Validator Docker Image
+# Uses the official Agave image from Anza
+#
+# ⚠️  IMPORTANT: Apple Silicon (M1/M2/M3) Compatibility
+#     The Solana validator requires AVX CPU instructions which are NOT available
+#     when running x86_64 containers via Rosetta/QEMU emulation on ARM64.
+#
+#     For Apple Silicon Macs, run solana-test-validator natively:
+#     1. Install: sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+#     2. Run: solana-test-validator --reset
+#
+#     This Docker image works on native x86_64/AMD64 Linux machines.
+#
+# Reference: https://github.com/anza-xyz/agave/blob/master/docker-solana/README.md
 
-# Avoid prompts from apt
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    ca-certificates \
-    libssl-dev \
-    libudev-dev \
-    pkg-config \
-    zlib1g-dev \
-    llvm \
-    clang \
-    cmake \
-    make \
-    libprotobuf-dev \
-    protobuf-compiler \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set Solana version (can be overridden at build time)
-ARG SOLANA_VERSION=1.18.22
-
-# Install Solana CLI tools
-RUN sh -c "$(curl -sSfL https://release.solana.com/v${SOLANA_VERSION}/install)" && \
-    echo 'export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"' >> /root/.bashrc
-
-ENV PATH="/root/.local/share/solana/install/active_release/bin:$PATH"
+FROM anzaxyz/agave:v2.1.6
 
 # Create ledger directory
 RUN mkdir -p /solana/ledger
 
 # Expose ports
 # 8899 - JSON RPC
-# 8900 - WebSocket
+# 8900 - WebSocket  
 # 8001 - Gossip
-# 8002 - TPU
-# 8003 - TPU forwards
-# 8004 - Repair
-# 8005 - ServeR
-EXPOSE 8899 8900 8001 8002 8003 8004 8005
+# 9900 - Faucet
+EXPOSE 8899 8900 8001 9900
 
 WORKDIR /solana
 
 # Default command to run test validator
-CMD ["solana-test-validator", \
-    "--ledger", "/solana/ledger", \
+ENTRYPOINT ["solana-test-validator"]
+CMD ["--ledger", "/solana/ledger", \
     "--rpc-port", "8899", \
     "--rpc-bind-address", "0.0.0.0", \
     "--dynamic-port-range", "8001-8020", \

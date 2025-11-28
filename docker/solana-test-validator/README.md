@@ -2,33 +2,45 @@
 
 This directory contains a Docker setup for running a Solana test validator for local development and testing.
 
-## Features
+## ⚠️ Apple Silicon (M1/M2/M3) Users
 
-- **Isolated test environment**: Run a local Solana validator without affecting your system
-- **Persistent ledger**: Ledger data is stored in a Docker volume
-- **Configurable version**: Easily change Solana version via build args
-- **Health checks**: Automatic health monitoring
-- **Network integration**: Connects to the GridTokenX network
+**The Solana validator does NOT work in Docker on Apple Silicon Macs** due to AVX CPU instruction requirements that aren't available in x86 emulation.
 
-## Quick Start
-
-### Build and Run
+### Recommended: Run Natively on macOS
 
 ```bash
-# Build the image
-docker-compose build
+# 1. Install Solana CLI
+sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
 
-# Start the validator
-docker-compose up -d
+# 2. Add to PATH (add to ~/.zshrc for persistence)
+export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+
+# 3. Run the test validator
+solana-test-validator --reset
+```
+
+The validator will be available at:
+- **RPC**: http://localhost:8899
+- **WebSocket**: ws://localhost:8900
+
+## x86/AMD64 Linux Users
+
+For native x86/AMD64 Linux machines, you can use Docker:
+
+### Quick Start
+
+```bash
+# Start the validator (use profile since it's optional)
+docker-compose --profile solana up -d solana-test-validator
 
 # View logs
-docker-compose logs -f
+docker-compose logs -f solana-test-validator
 ```
 
 ### Stop the Validator
 
 ```bash
-docker-compose down
+docker-compose down solana-test-validator
 ```
 
 ### Reset Ledger (Clean Start)
@@ -38,38 +50,23 @@ docker-compose down
 docker-compose down -v
 
 # Start fresh
-docker-compose up -d
+docker-compose --profile solana up -d solana-test-validator
 ```
 
-## Configuration
+## Features
 
-### Change Solana Version
-
-Edit the `SOLANA_VERSION` build arg in `docker-compose.yml`:
-
-```yaml
-build:
-  args:
-    SOLANA_VERSION: "1.18.22"  # Change to desired version
-```
-
-### Custom Validator Options
-
-Modify the `CMD` in the Dockerfile to add custom flags:
-
-```dockerfile
-CMD ["solana-test-validator", \
-     "--ledger", "/solana/ledger", \
-     "--rpc-port", "8899", \
-     "--reset", \              # Add --reset to start fresh each time
-     "--limit-ledger-size", "50000000"]  # Limit ledger size
-```
+- **Isolated test environment**: Run a local Solana validator without affecting your system
+- **Persistent ledger**: Ledger data is stored in a Docker volume
+- **Health checks**: Automatic health monitoring
+- **Network integration**: Connects to the GridTokenX network
 
 ## Exposed Ports
 
-- **8899**: JSON RPC endpoint
-- **8900**: WebSocket endpoint
-- **9900**: Faucet endpoint (for airdropping SOL)
+| Port | Description |
+|------|-------------|
+| 8899 | JSON RPC endpoint |
+| 8900 | WebSocket endpoint |
+| 9900 | Faucet endpoint (for airdropping SOL) |
 
 ## Usage Examples
 
@@ -109,26 +106,21 @@ console.log('Solana version:', version);
 ```rust
 use solana_client::rpc_client::RpcClient;
 
-let rpc_url = "http://localhost:8899".to_string();
+let rpc_url = "http://localhost:8899".to_string\(\)\;
 let client = RpcClient::new(rpc_url);
 let version = client.get_version().unwrap();
 println!("Solana version: {:?}", version);
 ```
 
-## Health Check
-
-The validator includes a health check that runs every 30 seconds:
-
-```bash
-# Check health status
-docker inspect solana-test-validator | grep -A 10 Health
-```
-
 ## Troubleshooting
+
+### "missing AVX support" Error
+
+This error occurs when running on ARM64 or in virtualized environments without AVX support. Run the validator natively instead of in Docker.
 
 ### Validator Won't Start
 
-1. Check logs: `docker-compose logs`
+1. Check logs: `docker-compose logs solana-test-validator`
 2. Ensure ports 8899, 8900, 9900 are not in use
 3. Try resetting the ledger: `docker-compose down -v && docker-compose up -d`
 
@@ -136,20 +128,9 @@ docker inspect solana-test-validator | grep -A 10 Health
 
 Increase Docker memory allocation in Docker Desktop settings (recommended: 4GB+)
 
-### Ledger Size Growing Too Large
-
-Add `--limit-ledger-size` flag to the validator command in the Dockerfile
-
-## Integration with GridTokenX
-
-This validator is designed to work with the GridTokenX platform. Ensure the `gridtokenx-network` Docker network exists:
-
-```bash
-docker network create gridtokenx-network
-```
-
 ## References
 
 - [Solana Test Validator Documentation](https://docs.solana.com/developing/test-validator)
 - [Agave Docker Images](https://github.com/anza-xyz/agave/tree/master/docker-solana)
 - [Solana CLI Reference](https://docs.solana.com/cli)
+- [Anza Solana Install](https://www.anchor-lang.com/docs/installation)

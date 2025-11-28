@@ -367,25 +367,92 @@ services:
       timeout: 10s
       retries: 3
 
+  # Solana Test Validator (Local Blockchain for Development)
+  #
+  # ⚠️  IMPORTANT: APPLE SILICON (M1/M2/M3/M4) USERS - DO NOT USE THIS SERVICE
+  #     This Docker service ONLY works on x86_64/AMD64 Linux systems.
+  #     On Apple Silicon Macs, the validator will crash with "Incompatible CPU: missing AVX support"
+  #     
+  #     Instead, run Solana validator NATIVELY on your Mac:
+  #     1. Install Solana CLI: sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+  #     2. Add to PATH: export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+  #     3. Run validator: solana-test-validator --reset
+  #     4. Start other services: docker-compose up (without --profile solana)
+  #
+  # For x86_64/AMD64 Linux machines:
+  #     Start with: docker-compose --profile solana up
+  #
+  solana-test-validator:
+    image: anzaxyz/agave:v2.1.6
+    platform: linux/amd64 # This service requires x86_64 architecture
+    container_name: gridtokenx-solana-validator
+    profiles:
+      - solana # Only starts when explicitly enabled with --profile solana
+      - full
+    ports:
+      - "${SOLANA_RPC_PORT:-8899}:8899" # JSON RPC
+      - "${SOLANA_WS_PORT:-8900}:8900" # WebSocket
+      - "${SOLANA_FAUCET_PORT:-9900}:9900" # Faucet
+    volumes:
+      - solana_ledger:/solana/ledger
+    networks:
+      - gridtokenx-network
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
+    command:
+      - "solana-test-validator"
+      - "--ledger"
+      - "/solana/ledger"
+      - "--rpc-port"
+      - "8899"
+      - "--rpc-bind-address"
+      - "0.0.0.0"
+      - "--dynamic-port-range"
+      - "8001-8020"
+      - "--gossip-port"
+      - "8001"
+      - "--faucet-port"
+      - "9900"
+      - "--log"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://localhost:8899/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
   # Anchor (Solana Development - Optional, for testing)
   # Uncomment if you need to run Anchor tests in Docker
   anchor:
     build:
       context: ./gridtokenx-anchor
       dockerfile: Dockerfile
+    platform: linux/amd64
     container_name: gridtokenx-anchor
     ports:
       - "${ANCHOR_RPC_PORT:-8899}:8899"
       - "${ANCHOR_WS_PORT:-8900}:8900"
     environment:
       # Solana Configuration
-      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-http://localhost:8899}
-      SOLANA_WS_URL: ${SOLANA_WS_URL:-ws://localhost:8900}
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-http://solana-test-validator:8899}
+      SOLANA_WS_URL: ${SOLANA_WS_URL:-ws://solana-test-validator:8900}
     volumes:
       - ./gridtokenx-anchor:/app
       - anchor_cache:/root/.cache
     networks:
       - gridtokenx-network
+    depends_on:
+      solana-test-validator:
+        condition: service_healthy
     restart: unless-stopped
 
 networks:
@@ -396,4 +463,5 @@ volumes:
   postgres_data:
   redis_data:
   mailpit_data:
+  solana_ledger:
   anchor_cache:

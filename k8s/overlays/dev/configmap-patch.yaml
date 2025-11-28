@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gridtokenx-config
+  namespace: gridtokenx
+data:
+  ENVIRONMENT: "development"
+  LOG_LEVEL: "debug"
+  RUST_LOG: "debug"
+  TEST_MODE: "true"
+  ENABLE_METRICS: "false"

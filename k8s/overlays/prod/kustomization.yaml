@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: gridtokenx
+
+bases:
+  - ../../base
+
+namePrefix: prod-
+
+commonLabels:
+  environment: production
+
+patchesStrategicMerge:
+  - configmap-patch.yaml
+  - deployment-patches.yaml
+
+images:
+  - name: gridtokenx/apigateway
+    newTag: v1.0.0
+  - name: gridtokenx/explorer
+    newTag: v1.0.0
+  - name: gridtokenx/trading
+    newTag: v1.0.0
+  - name: gridtokenx/website
+    newTag: v1.0.0
+  - name: gridtokenx/smartmeter
+    newTag: v1.0.0
+  - name: gridtokenx/anchor
+    newTag: v1.0.0

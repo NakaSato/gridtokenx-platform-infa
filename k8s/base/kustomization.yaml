@@ -1,0 +1,62 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: gridtokenx
+
+resources:
+  # Base configuration
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  
+  # Database layer
+  - postgres-statefulset.yaml
+  - postgres-service.yaml
+  - redis-statefulset.yaml
+  - redis-service.yaml
+  
+  # Blockchain infrastructure
+  - solana-validator-deployment.yaml
+  - solana-validator-service.yaml
+  - anchor-deployment.yaml
+  - anchor-service.yaml
+  
+  # Application services
+  - apigateway-deployment.yaml
+  - apigateway-service.yaml
+  - apigateway-hpa.yaml
+  - explorer-deployment.yaml
+  - explorer-service.yaml
+  - trading-deployment.yaml
+  - trading-service.yaml
+  - website-deployment.yaml
+  - website-service.yaml
+  - smartmeter-deployment.yaml
+  - smartmeter-service.yaml
+  - mailpit-deployment.yaml
+  - mailpit-service.yaml
+  
+  # Networking
+  - ingress.yaml
+  - network-policy.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: gridtokenx
+      app.kubernetes.io/managed-by: kustomize
+
+images:
+  - name: gridtokenx/apigateway
+    newTag: latest
+  - name: gridtokenx/explorer
+    newTag: latest
+  - name: gridtokenx/trading
+    newTag: latest
+  - name: gridtokenx/website
+    newTag: latest
+  - name: gridtokenx/smartmeter
+    newTag: latest
+  - name: gridtokenx/anchor
+    newTag: latest
+  - name: gridtokenx/solana-test-validator
+    newTag: latest

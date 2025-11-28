@@ -1,0 +1,11 @@
+# Kubernetes Deployment
+
+k8s/
+├── README.md
+├── base/
+├── database/
+├── blockchain/
+├── apps/
+├── networking/
+├── overlays/
+└── scripts/

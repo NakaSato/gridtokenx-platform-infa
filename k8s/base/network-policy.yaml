@@ -1,0 +1,290 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: gridtokenx
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-apigateway-to-databases
+  namespace: gridtokenx
+spec:
+  podSelector:
+    matchLabels:
+      app: apigateway
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow PostgreSQL
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow Redis
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow Solana Validator
+  - to:
+    - podSelector:
+        matchLabels:
+          app: solana-validator
+    ports:
+    - protocol: TCP
+      port: 8899
+    - protocol: TCP
+      port: 8900
+  # Allow Mailpit SMTP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: mailpit
+    ports:
+    - protocol: TCP
+      port: 1025
+  # Allow external HTTPS (for Pyth, InfluxDB, etc.)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-smartmeter-to-databases
+  namespace: gridtokenx
+spec:
+  podSelector:
+    matchLabels:
+      app: smartmeter
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow PostgreSQL
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow external HTTPS (for InfluxDB)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-apigateway
+  namespace: gridtokenx
+spec:
+  podSelector:
+    matchLabels:
+      component: frontend
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow API Gateway
+  - to:
+    - podSelector:
+        matchLabels:
+          app: apigateway
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow Solana Validator (for direct RPC calls)
+  - to:
+    - podSelector:
+        matchLabels:
+          app: solana-validator
+    ports:
+    - protocol: TCP
+      port: 8899
+    - protocol: TCP
+      port: 8900
+  # Allow external HTTPS (for Pyth, CDNs, etc.)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-postgres-ingress
+  namespace: gridtokenx
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: apigateway
+    - podSelector:
+        matchLabels:
+          app: smartmeter
+    ports:
+    - protocol: TCP
+      port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-redis-ingress
+  namespace: gridtokenx
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: apigateway
+    ports:
+    - protocol: TCP
+      port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-services
+  namespace: gridtokenx
+spec:
+  podSelector:
+    matchLabels:
+      component: frontend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx  # Adjust based on your ingress controller namespace
+    ports:
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 4000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-apigateway
+  namespace: gridtokenx
+spec:
+  podSelector:
+    matchLabels:
+      app: apigateway
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx  # Adjust based on your ingress controller namespace
+    - podSelector:
+        matchLabels:
+          component: frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-smartmeter
+  namespace: gridtokenx
+spec:
+  podSelector:
+    matchLabels:
+      app: smartmeter
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx  # Adjust based on your ingress controller namespace
+    ports:
+    - protocol: TCP
+      port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-mailpit
+  namespace: gridtokenx
+spec:
+  podSelector:
+    matchLabels:
+      app: mailpit
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx  # Adjust based on your ingress controller namespace
+    - podSelector:
+        matchLabels:
+          app: apigateway
+    ports:
+    - protocol: TCP
+      port: 8025
+    - protocol: TCP
+      port: 1025

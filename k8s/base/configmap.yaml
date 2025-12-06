@@ -10,6 +10,9 @@ data:
   LOG_FORMAT: "json"
   AUDIT_LOG_ENABLED: "true"
   TEST_MODE: "false"
+  PORT: "8080"
+  SERVER_HOST: "0.0.0.0"
+  SERVER_PORT: "8080"
   
   # Database Configuration (non-sensitive)
   POSTGRES_DB: "gridtokenx"
@@ -36,8 +39,9 @@ data:
   SOLANA_RPC_URL: "http://solana-validator:8899"
   SOLANA_WS_URL: "ws://solana-validator:8900"
   SOLANA_CLUSTER: "localnet"
+  NEXT_PUBLIC_DEFAULT_CLUSTER: "custom"
   
-  # Program IDs (these should be updated after deployment)
+  # Program IDs
   REGISTRY_PROGRAM_ID: "FSXdxk5uPUvJc51MzjtBaCDrFh7RSMcHFHKpzCG9LeuJ"
   ENERGY_TOKEN_PROGRAM_ID: "FaELH72fUMRaLTX3ersmQLr4purfHGvJccm1BXfDPL6r"
   TRADING_PROGRAM_ID: "CEWpf4Rvm3SU2zQgwsQpi5EMYBUrWbKLcAhAT2ouVoWD"
@@ -61,12 +65,12 @@ data:
   PASSWORD_REQUIRE_SPECIAL_CHARS: "true"
   
   # Security Settings
-  SECURE_COOKIES: "true"
+  SECURE_COOKIES: "false"
   SESSION_TIMEOUT: "3600"
   MAX_LOGIN_ATTEMPTS: "5"
   LOCKOUT_DURATION: "900"
   
-  # Email Configuration (non-sensitive)
+  # Email Configuration
   SMTP_HOST: "mailpit"
   SMTP_PORT: "1025"
   EMAIL_FROM_NAME: "GridTokenX"
@@ -180,3 +184,9 @@ data:
   MP_SMTP_AUTH_ACCEPT_ANY: "1"
   MP_SMTP_AUTH_ALLOW_INSECURE: "1"
   TZ: "UTC"
+  
+  # Frontend Configuration
+  NODE_ENV: "production"
+  NEXT_PUBLIC_API_URL: "http://apigateway:8080"
+  NEXT_PUBLIC_SOLANA_RPC_URL: "http://solana-validator:8899"
+  NEXT_PUBLIC_PYTH_PRICE_SERVICE_URL: "https://hermes.pyth.network"

@@ -34,9 +34,11 @@ spec:
         - containerPort: 8001
           name: gossip
           protocol: TCP
-        env:
-        - name: RUST_LOG
-          value: "solana_runtime::system_instruction_processor=trace,solana_runtime::message_processor=debug,solana_bpf_loader=debug,solana_rbpf=debug"
+        envFrom:
+        - configMapRef:
+            name: gridtokenx-config
+        - secretRef:
+            name: gridtokenx-secrets
         resources:
           requests:
             memory: "2Gi"

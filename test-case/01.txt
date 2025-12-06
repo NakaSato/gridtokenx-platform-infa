@@ -1,0 +1,1 @@
+the primary flow is register -> verify email -> user has (wallet address) -> add smart meter serail (for verficy owner ship meter and wallet) -> smat meter send real-time data -> verify enerfy data -> mint token to wallet owner -> show balance of token -> create trading simple -> create transaction p2p simple

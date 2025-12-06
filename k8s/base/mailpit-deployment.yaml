@@ -27,32 +27,11 @@ spec:
         - containerPort: 8025
           name: http
           protocol: TCP
-        env:
-        - name: MP_MAX_MESSAGES
-          valueFrom:
-            configMapKeyRef:
-              name: gridtokenx-config
-              key: MP_MAX_MESSAGES
-        - name: MP_DATABASE
-          valueFrom:
-            configMapKeyRef:
-              name: gridtokenx-config
-              key: MP_DATABASE
-        - name: MP_SMTP_AUTH_ACCEPT_ANY
-          valueFrom:
-            configMapKeyRef:
-              name: gridtokenx-config
-              key: MP_SMTP_AUTH_ACCEPT_ANY
-        - name: MP_SMTP_AUTH_ALLOW_INSECURE
-          valueFrom:
-            configMapKeyRef:
-              name: gridtokenx-config
-              key: MP_SMTP_AUTH_ALLOW_INSECURE
-        - name: TZ
-          valueFrom:
-            configMapKeyRef:
-              name: gridtokenx-config
-              key: TZ
+        envFrom:
+        - configMapRef:
+            name: gridtokenx-config
+        - secretRef:
+            name: gridtokenx-secrets
         resources:
           requests:
             memory: "64Mi"

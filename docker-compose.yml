@@ -160,6 +160,7 @@ services:
       API_KEY_SECRET: ${API_KEY_SECRET:-test-api-key-secret-for-development-and-testing}
       ENGINEERING_API_KEY: ${ENGINEERING_API_KEY:-engineering-department-api-key-2025}
       HMAC_SECRET: ${HMAC_SECRET:-hmac-signature-secret-change-in-production}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:-dev-encryption-secret-key-32-chars-minimum-for-wallet-encryption}
 
       # Password Requirements
       PASSWORD_MIN_LENGTH: ${PASSWORD_MIN_LENGTH:-8}
@@ -252,8 +253,6 @@ services:
       - gridtokenx-network
     restart: unless-stopped
 
-
-
   # Trading Platform (Next.js)
   trading:
     build:
@@ -270,8 +269,6 @@ services:
     networks:
       - gridtokenx-network
     restart: unless-stopped
-
-
 
   # Smart Meter Simulator (Python/FastAPI)
   smartmeter-simulator:

@@ -1,0 +1,58 @@
+--- Login Buyer ---
+Buyer Token: null...
+--- Login Seller ---
+Seller Token: null...
+--- Create Sell Order ---
+Note: Unnecessary use of -X or --request, POST is already inferred.
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 127.0.0.1:4000...
+* Connected to 127.0.0.1 (127.0.0.1) port 4000
+> POST /api/v1/trading/orders HTTP/1.1
+> Host: 127.0.0.1:4000
+> User-Agent: curl/8.7.1
+> Accept: */*
+> Authorization: Bearer null
+> Content-Type: application/json
+> Content-Length: 107
+> 
+} [107 bytes data]
+* upload completely sent off: 107 bytes
+< HTTP/1.1 401 Unauthorized
+< vary: origin, access-control-request-method, access-control-request-headers
+< access-control-allow-origin: *
+< access-control-expose-headers: *
+< content-length: 24
+< date: Thu, 18 Dec 2025 18:12:27 GMT
+< 
+{ [24 bytes data]
+100   131  100    24  100   107  10291  45883 --:--:-- --:--:-- --:--:-- 65500
+* Connection #0 to host 127.0.0.1 left intact
+Invalid or expired token
+--- Create Buy Order ---
+Note: Unnecessary use of -X or --request, POST is already inferred.
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 127.0.0.1:4000...
+* Connected to 127.0.0.1 (127.0.0.1) port 4000
+> POST /api/v1/trading/orders HTTP/1.1
+> Host: 127.0.0.1:4000
+> User-Agent: curl/8.7.1
+> Accept: */*
+> Authorization: Bearer null
+> Content-Type: application/json
+> Content-Length: 106
+> 
+} [106 bytes data]
+* upload completely sent off: 106 bytes
+< HTTP/1.1 401 Unauthorized
+< vary: origin, access-control-request-method, access-control-request-headers
+< access-control-allow-origin: *
+< access-control-expose-headers: *
+< content-length: 24
+< date: Thu, 18 Dec 2025 18:12:27 GMT
+< 
+{ [24 bytes data]
+100   130  100    24  100   106  12251  54109 --:--:-- --:--:-- --:--:--  126k
+* Connection #0 to host 127.0.0.1 left intact
+Invalid or expired token

@@ -1,0 +1,82 @@
+@startuml
+!include <tupadr3/devicons/react>
+!include <tupadr3/devicons/python>
+!include <tupadr3/devicons/rust>
+!include <tupadr3/font-awesome-5/coins>
+!include <tupadr3/font-awesome-5/cubes>
+
+<style>
+title {
+    FontSize 20
+    FontStyle bold
+    FontColor #1a1a2e
+}
+caption {
+    FontSize 10
+    FontColor #6c757d
+}
+map {
+    BackgroundColor #ffffff
+    LineColor #e9ecef
+    LineThickness 1
+    FontColor #212529
+    RoundCorner 12
+    Shadowing 4.0
+}
+</style>
+
+title GridTokenX | Tech Stack
+caption v1.0 · Updated December 2025
+
+skinparam backgroundColor #f8f9fa
+skinparam defaultFontName "SF Pro Display", "Segoe UI", system-ui
+skinparam defaultFontSize 11
+
+together {
+    map "<size:14><color:#0d6efd><$react></color> Trading Frontend</size>" as FE {
+        <color:#6c757d>Framework</color> => Next.js 15 · React 19 · TypeScript
+        <color:#6c757d>Styling</color> => Tailwind CSS · Radix UI · Lucide
+        <color:#6c757d>Charts</color> => Chart.js · Zoom Plugin
+        <color:#6c757d>Blockchain</color> => @solana/web3.js · Anchor
+        <color:#6c757d>Wallet</color> => Wallet Adapter React
+    }
+
+    map "<size:14><color:#6c757d><$cubes></color> GridTokenX SDK</size>" as SDK {
+        <color:#6c757d>Core</color> => @solana/web3.js 1.98
+        <color:#6c757d>Anchor</color> => @coral-xyz/anchor 0.32
+        <color:#6c757d>Token</color> => @solana/spl-token 0.4
+        <color:#6c757d>Oracle</color> => Pyth Network Client
+    }
+}
+
+together {
+    map "<size:14><color:#fd7e14><$rust></color> API Gateway</size>" as BE {
+        <color:#6c757d>Server</color> => Axum 0.8 · Tower · Hyper
+        <color:#6c757d>Runtime</color> => Tokio · Futures
+        <color:#6c757d>Database</color> => SQLx (Postgres) · Redis
+        <color:#6c757d>Auth</color> => JWT · Bcrypt · Ed25519
+        <color:#6c757d>Chain</color> => Solana SDK · Anchor Client
+        <color:#6c757d>Docs</color> => Utoipa · Swagger UI
+    }
+
+    map "<size:14><color:#198754><$python></color> Meter Simulator</size>" as SIM {
+        <color:#6c757d>API</color> => FastAPI · Uvicorn · Pydantic
+        <color:#6c757d>Data</color> => Pandas · NumPy · Faker
+        <color:#6c757d>Async</color> => Aiohttp · HTTPX · WebSockets
+        <color:#6c757d>Storage</color> => Psycopg2 · InfluxDB
+    }
+}
+
+map "<size:14><color:#ffc107><$coins></color> Solana Programs</size>" as BC {
+    <color:#6c757d>Framework</color> => Anchor Lang 0.32.1 · Anchor SPL
+    <color:#6c757d>Tokens</color> => SPL Token 9.0 · MPL Metadata
+    <color:#6c757d>Core</color> => Solana Program · Borsh · Base64
+}
+
+FE -[hidden]right- SDK
+BE -[hidden]right- SIM
+FE -[hidden]down- BE
+SDK -[hidden]down- SIM
+BE -[hidden]down- BC
+
+@enduml

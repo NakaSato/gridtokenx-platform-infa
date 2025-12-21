@@ -1,22 +1,0 @@
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 127.0.0.1:4000...
-* Connected to 127.0.0.1 (127.0.0.1) port 4000
-> GET /health HTTP/1.1
-> Host: 127.0.0.1:4000
-> User-Agent: curl/8.7.1
-> Accept: */*
-> 
-* Request completely sent off
-< HTTP/1.1 200 OK
-< content-type: text/plain; charset=utf-8
-< vary: origin, access-control-request-method, access-control-request-headers
-< access-control-allow-origin: *
-< access-control-expose-headers: *
-< content-length: 37
-< date: Thu, 18 Dec 2025 18:11:43 GMT
-< 
-{ [37 bytes data]
-100    37  100    37    0     0  18686      0 --:--:-- --:--:-- --:--:-- 37000
-* Connection #0 to host 127.0.0.1 left intact
-OK - Gateway Running (Real Data Mode)

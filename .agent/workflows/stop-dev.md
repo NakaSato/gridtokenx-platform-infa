@@ -5,20 +5,31 @@ description: Stop all development services for GridTokenX
 
 This workflow stops all running development services.
 
-## Steps
+## Quick Command
 
-1. **Stop Frontend**
-Kill the npm dev server process.
-
-2. **Stop API Gateway**
-Kill the cargo run process.
-
-3. **Stop Solana Validator**
+// turbo
 ```bash
-pkill -f "solana-test-validator" || true
+./scripts/stop-dev.sh
 ```
 
-4. **Stop Docker Services** (optional)
+To stop everything including Docker services:
+```bash
+./scripts/stop-dev.sh --all
+```
+
+## Manual Steps
+
+1. **Stop API Gateway**
+```bash
+pkill -f "api-gateway" 2>/dev/null || true
+```
+
+2. **Stop Solana Validator**
+```bash
+pkill -f "solana-test-validator" 2>/dev/null || true
+```
+
+3. **Stop Docker Services** (optional)
 ```bash
 cd /Users/chanthawat/Developments/gridtokenx-platform-infa && docker-compose down
 ```
@@ -26,3 +37,4 @@ cd /Users/chanthawat/Developments/gridtokenx-platform-infa && docker-compose dow
 ## Notes
 - Database data persists in Docker volumes
 - Solana state is reset on next start with `--reset` flag
+- The stop script leaves Docker services running by default for faster restarts

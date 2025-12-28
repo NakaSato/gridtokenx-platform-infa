@@ -29,3 +29,10 @@ Notes
 
 Seller: seller@gridtokenx.local / Seller123!
 Buyer: buyer@gridtokenx.local / Buyer123!
+
+
+UTCC Admin User:
+
+Username: utcc_admin
+Email: admin@utcc.ac.th
+Password: Utcc1234!

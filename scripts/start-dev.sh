@@ -149,9 +149,12 @@ echo ""
 echo -e "${YELLOW}🪙 Creating Energy Token (SPL Token)...${NC}"
 cd "$GATEWAY_DIR"
 
-# Create a new SPL token with dev-wallet as mint authority
+# Create a new SPL token with dev-wallet as mint authority (9 decimals)
+# Using Token-2022 with Permanent Delegate to allow authority to burn tokens from user wallets
 TOKEN_OUTPUT=$(spl-token create-token \
-    --decimals 6 \
+    --program-2022 \
+    --enable-permanent-delegate \
+    --decimals 9 \
     --fee-payer "$DEV_WALLET" \
     --mint-authority "$DEV_WALLET" \
     --url $RPC_URL 2>&1)
@@ -194,9 +197,7 @@ echo ""
 echo -e "${YELLOW}🔨 Building API Gateway...${NC}"
 cd "$GATEWAY_DIR"
 
-if [ ! -f "target/release/api-gateway" ] || [ "src/main.rs" -nt "target/release/api-gateway" ]; then
-    cargo build --release --bin api-gateway 2>&1 | tail -5
-fi
+cargo build --release --bin api-gateway 2>&1 | tail -5
 echo -e "${GREEN}✅ API Gateway built${NC}"
 
 # ============================================================================
@@ -221,6 +222,14 @@ for i in {1..60}; do
     fi
     sleep 1
 done
+
+# ============================================================================
+# Step 10: Seed Simulator Accounts
+# ============================================================================
+echo ""
+echo -e "${YELLOW}planting seeds for simulator accounts...${NC}"
+"$PROJECT_ROOT/scripts/seed_simulator_tokens.sh" || echo -e "${RED}Warning: Failed to seed simulator tokens${NC}"
+
 
 # ============================================================================
 # Final Summary

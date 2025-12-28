@@ -1,0 +1,31 @@
+GridTokenX Test Users
+======================
+Created: 2025-12-26
+
+SELLER (Prosumer)
+-----------------
+Email: seller@gridtokenx.local
+Username: seller
+Password: Seller123!
+Role: prosumer
+User ID: 000bbedb-b66f-4bd2-ac9e-491aea99ec2a
+Access Token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMDBiYmVkYi1iNjZmLTRiZDItYWM5ZS00OTFhZWE5OWVjMmEiLCJ1c2VybmFtZSI6InNlbGxlciIsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzY2ODMwMDI0LCJpYXQiOjE3NjY3NDM2MjQsImlzcyI6ImFwaS1nYXRld2F5In0.pPNEIyX_M0VSydssop-CuR7jicxWv4sZV6ToOiGj7lo
+
+BUYER (Consumer)
+----------------
+Email: buyer@gridtokenx.local
+Username: buyer
+Password: Buyer123!
+Role: consumer
+User ID: 72be9410-d252-42a7-87ff-2c849f9e71bd
+Access Token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3MmJlOTQxMC1kMjUyLTQyYTctODdmZi0yYzg0OWY5ZTcxYmQiLCJ1c2VybmFtZSI6ImJ1eWVyIiwicm9sZSI6InVzZXIiLCJleHAiOjE3NjY4MzAwMjUsImlhdCI6MTc2Njc0MzYyNSwiaXNzIjoiYXBpLWdhdGV3YXkifQ.4u-cGNlqACxFbivEQtE-vu0fbd4hOlu2eOQVmGNfG04
+
+Notes
+-----
+- Both users have been registered and email verification has been sent
+- Email verification can be checked at: http://localhost:8025 (Mailpit)
+- Passwords must contain: uppercase, lowercase, number, and special character
+- Access tokens expire in 24 hours (86400 seconds)
+
+Seller: seller@gridtokenx.local / Seller123!
+Buyer: buyer@gridtokenx.local / Buyer123!

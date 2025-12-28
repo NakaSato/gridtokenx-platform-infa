@@ -7,6 +7,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-gridtokenx}
       POSTGRES_USER: ${POSTGRES_USER:-gridtokenx_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gridtokenx_password}
+      TZ: ${TZ:-UTC}
     command:
       - "postgres"
       - "-c"
@@ -57,6 +58,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: gridtokenx-redis
+    environment:
+      TZ: ${TZ:-UTC}
     ports:
       - "6379:6379"
     volumes:
@@ -106,6 +109,7 @@ services:
       - ./dev-wallet.json:/app/dev-wallet.json
     environment:
       # Application Configuration
+      TZ: ${TZ:-UTC}
       PORT: ${PORT:-8080}
       SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
       SERVER_PORT: ${SERVER_PORT:-8080}
@@ -263,6 +267,7 @@ services:
       - "${TRADING_PORT}:3000"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
+      TZ: ${TZ:-UTC}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
       NEXT_PUBLIC_SOLANA_RPC_URL: ${NEXT_PUBLIC_SOLANA_RPC_URL:-https://api.devnet.solana.com}
       NEXT_PUBLIC_PYTH_PRICE_SERVICE_URL: ${NEXT_PUBLIC_PYTH_PRICE_SERVICE_URL:-https://hermes.pyth.network}
@@ -279,6 +284,9 @@ services:
     ports:
       - "${SMARTMETER_PORT}:8000"
     environment:
+      # General Configuration
+      TZ: ${TZ:-UTC}
+
       # Database Configuration
       DATABASE_URL: postgresql://${POSTGRES_USER:-gridtokenx_user}:${POSTGRES_PASSWORD:-gridtokenx_password}@postgres:5432/${POSTGRES_DB:-gridtokenx}
 
@@ -449,6 +457,9 @@ services:
       - "${ANCHOR_RPC_PORT}:8899"
       - "${ANCHOR_WS_PORT}:8900"
     environment:
+      # General Configuration
+      TZ: ${TZ:-UTC}
+
       # Solana Configuration
       SOLANA_RPC_URL: ${SOLANA_RPC_URL:-http://solana-test-validator:8899}
       SOLANA_WS_URL: ${SOLANA_WS_URL:-ws://solana-test-validator:8900}

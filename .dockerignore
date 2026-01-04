@@ -1,39 +1,9 @@
-# Common patterns
-.git
-.gitignore
-.DS_Store
+target/
+**/target
+**/.git
+**/node_modules
+**/dist
+**/.next
+**/.DS_Store
 *.log
-.env
-.env.local
-
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-*~
-
-# Documentation
-*.md
-docs/
-LICENSE
-
-# CI/CD
-.github/
-.gitlab-ci.yml
-
-# Docker
-docker-compose*.yml
-Dockerfile
-.dockerignore
-
-# Service-specific
-*/node_modules
-*/.next
-*/target
-*/.anchor
-*/test-ledger
-*/__pycache__
-*/.pytest_cache
-*/coverage
-*/.cache
+tmp/

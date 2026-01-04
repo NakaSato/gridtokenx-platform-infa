@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE futures_orders SET status = 'filled', filled_quantity = $1, average_fill_price = $2 WHERE id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Numeric",
+        "Numeric",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8d6320b81c992c1eca384ca2928ad67c21cdc75a29bcfccba00a0ecec72e0ba9"
+}

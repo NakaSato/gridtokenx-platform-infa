@@ -38,3 +38,4 @@ cd /Users/chanthawat/Developments/gridtokenx-platform-infa && docker-compose dow
 - Database data persists in Docker volumes
 - Solana state is reset on next start with `--reset` flag
 - The stop script leaves Docker services running by default for faster restarts
+- **Important**: You must manually close the extra Terminal tabs opened by the start script

@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                o.id, o.user_id, o.product_id, \n                COALESCE(o.side::text, 'unknown') as side, \n                COALESCE(o.order_type::text, 'unknown') as order_type,\n                o.quantity, o.price, o.leverage, \n                COALESCE(o.status::text, 'unknown') as status,\n                COALESCE(o.filled_quantity, 0) as filled_quantity, \n                o.average_fill_price,\n                o.created_at, o.updated_at,\n                COALESCE(p.symbol, 'unknown') as product_symbol\n            FROM futures_orders o\n            JOIN futures_products p ON o.product_id = p.id\n            WHERE o.user_id = $1\n            ORDER BY o.created_at DESC\n            LIMIT 50\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "side",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "order_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "quantity",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "leverage",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "filled_quantity",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "average_fill_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "product_symbol",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null,
+      false,
+      false,
+      false,
+      null,
+      null,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "a860301202c8a2ffece613f86109f9af435448b77e1cfb1ce6e0a4a97a61c658"
+}

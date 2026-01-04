@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE users \n            SET wallet_address = $1,\n                encrypted_private_key = $2,\n                wallet_salt = $3,\n                encryption_iv = $4,\n                updated_at = NOW()\n            WHERE id = $5\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Bytea",
+        "Bytea",
+        "Bytea",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a1574bf34a12e4fb526389dcdae938c8998b3dda7cfdc709fa076aa9ff00acd9"
+}

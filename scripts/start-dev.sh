@@ -190,44 +190,46 @@ update_env_file "$PROJECT_ROOT/.env" "SOLANA_WS_URL" "$WS_URL"
 
 echo -e "${GREEN}✅ Environment configured${NC}"
 
+
 # ============================================================================
-# Step 8: Build API Gateway (if needed)
+# Step 8: Start Application Services (Native Terminal Tabs)
 # ============================================================================
 echo ""
-echo -e "${YELLOW}🔨 Building API Gateway...${NC}"
-cd "$GATEWAY_DIR"
+echo -e "${YELLOW}🚀 Launching application services in new Terminal tabs...${NC}"
 
-cargo build --release --bin api-gateway 2>&1 | tail -5
-echo -e "${GREEN}✅ API Gateway built${NC}"
+# Function to run command in new tab
+run_in_new_tab() {
+    local title="$1"
+    local command="$2"
+    
+    # Use simpler apple script approach
+    osascript -e "tell application \"Terminal\" to do script \"$command\"" >/dev/null
+}
 
-# ============================================================================
-# Step 9: Start API Gateway
-# ============================================================================
-echo ""
-echo -e "${YELLOW}🚀 Starting API Gateway...${NC}"
-cd "$GATEWAY_DIR"
+# 1. API Gateway
+echo "  • Starting API Gateway..."
+# Simply cd and cargo run. The app loads .env via dotenvy
+GATEWAY_CMD="cd $GATEWAY_DIR && cargo run --release --bin api-gateway"
+run_in_new_tab "API Gateway" "$GATEWAY_CMD"
 
-# Export environment variables and start
-export $(grep -v '^#' .env | grep -v "^$" | xargs)
-./target/release/api-gateway 2>&1 &
-GATEWAY_PID=$!
-echo "  API Gateway PID: $GATEWAY_PID"
+# 2. Smart Meter Simulator
+echo "  • Starting Smart Meter Simulator..."
+SIM_CMD="cd $PROJECT_ROOT/gridtokenx-smartmeter-simulator && ./dev-server.sh"
+run_in_new_tab "Simulator" "$SIM_CMD"
 
-# Wait for API to be ready
-echo -e "${YELLOW}⏳ Waiting for API Gateway to be ready...${NC}"
-for i in {1..60}; do
-    if curl -s http://localhost:4000/health | grep -q "healthy"; then
-        echo -e "${GREEN}✅ API Gateway is ready!${NC}"
-        break
-    fi
-    sleep 1
-done
+# 3. Trading UI
+echo "  • Starting Trading UI..."
+TRADING_CMD="cd $PROJECT_ROOT/gridtokenx-trading && npm run dev"
+run_in_new_tab "Trading UI" "$TRADING_CMD"
 
 # ============================================================================
-# Step 10: Seed Simulator Accounts
+# Step 9: Seed Simulator Accounts (Wait briefly for API to init)
 # ============================================================================
 echo ""
-echo -e "${YELLOW}planting seeds for simulator accounts...${NC}"
+echo -e "${YELLOW}⏳ Waiting 10s for services to initialize before seeding...${NC}"
+sleep 10
+
+echo -e "${YELLOW}🌱 Seeding simulator accounts...${NC}"
 "$PROJECT_ROOT/scripts/seed_simulator_tokens.sh" || echo -e "${RED}Warning: Failed to seed simulator tokens${NC}"
 
 
@@ -239,12 +241,15 @@ echo -e "${BLUE}╔════════════════════�
 echo -e "${BLUE}║           Development Environment Ready!           ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${GREEN}Services running:${NC}"
+echo -e "${GREEN}Infrastructure running in background/Docker:${NC}"
 echo "  • Solana Validator:  $RPC_URL"
-echo "  • API Gateway:       http://localhost:4000"
-echo "  • Swagger Docs:      http://localhost:4000/api/docs"
 echo "  • PostgreSQL:        localhost:5432"
 echo "  • Redis:             localhost:6379"
+echo ""
+echo -e "${GREEN}Services launched in new Terminal tabs:${NC}"
+echo "  • API Gateway:       http://localhost:4000"
+echo "  • Simulator:         http://localhost:8080"
+echo "  • Trading UI:        http://localhost:3000"
 echo ""
 echo -e "${CYAN}Token Configuration:${NC}"
 echo "  • Energy Token Mint: $ENERGY_TOKEN_MINT"
@@ -254,12 +259,9 @@ echo -e "${YELLOW}Key Endpoints:${NC}"
 echo "  • Register User:     POST /api/v1/users"
 echo "  • Login:             POST /api/v1/auth/token"
 echo "  • Register Meter:    POST /api/v1/meters"
-echo "  • Submit Reading:    POST /api/v1/meters/{serial}/readings"
-echo "  • Mint Tokens:       POST /api/v1/meters/readings/{id}/mint"
 echo "  • Check Balance:     GET /api/v1/wallets/{address}/balance"
 echo ""
-echo -e "${YELLOW}To stop all services:${NC}"
-echo "  pkill -f solana-test-validator"
-echo "  pkill -f api-gateway"
+echo -e "${YELLOW}To stop background services:${NC}"
+echo "  ./scripts/stop-dev.sh"
 echo ""
 echo -e "${GREEN}Happy coding! 🎉${NC}"

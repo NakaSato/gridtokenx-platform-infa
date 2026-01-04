@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, username, email, wallet_address,\n                   encrypted_private_key, wallet_salt, encryption_iv\n            FROM users\n            ORDER BY created_at DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "wallet_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "encrypted_private_key",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 5,
+        "name": "wallet_salt",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 6,
+        "name": "encryption_iv",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "93719f8106a871c29ad133485e2880f7d6ca3269dcd788442e127baeef06c617"
+}

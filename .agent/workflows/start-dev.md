@@ -1,6 +1,7 @@
 ---
 description: Start the GridTokenX development environment
 ---
+
 # Start Development Environment
 
 This workflow starts all required services for local development.
@@ -33,17 +34,10 @@ This workflow starts all required services for local development.
 | PostgreSQL | localhost:5432 |
 | Redis | localhost:6379 |
 
-## Key Endpoints After Setup
-
-- **Register User**: `POST /api/v1/users`
-- **Login**: `POST /api/v1/auth/token`
-- **Register Meter**: `POST /api/v1/meters`
-- **Submit Reading**: `POST /api/v1/meters/{serial}/readings`
-- **Mint Tokens**: `POST /api/v1/meters/readings/{id}/mint`
-- **Check Balance**: `GET /api/v1/wallets/{address}/balance`
-
 ## Notes
 - The script creates a fresh SPL token on each run
 - Dev wallet keypair is at `gridtokenx-apigateway/dev-wallet.json`
 - Token mint address is automatically updated in .env files
-- Use `./scripts/stop-dev.sh` to stop all services
+- **New Terminal tabs** will be opened for API Gateway, Simulator, and Trading UI
+- Use `./scripts/stop-dev.sh` to stop background services (Validator, Postgres, Redis)
+- You may need to manually close the extra Terminal tabs/windows

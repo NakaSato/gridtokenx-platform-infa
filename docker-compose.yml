@@ -100,19 +100,19 @@ services:
   # API Gateway (Rust/Axum)
   apigateway:
     build:
-      context: ./gridtokenx-apigateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: gridtokenx-apigateway/Dockerfile
     container_name: gridtokenx-apigateway
     ports:
-      - "${APIGATEWAY_PORT}:8080"
+      - "${APIGATEWAY_PORT}:4000"
     volumes:
       - ./dev-wallet.json:/app/dev-wallet.json
     environment:
       # Application Configuration
       TZ: ${TZ:-UTC}
-      PORT: ${PORT:-8080}
+      PORT: ${PORT:-4000}
       SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
-      SERVER_PORT: ${SERVER_PORT:-8080}
+      SERVER_PORT: ${SERVER_PORT:-4000}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       RUST_LOG: ${RUST_LOG:-info}
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -142,7 +142,7 @@ services:
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:-energy_readings}
 
       # Smart Meter Simulator Configuration (for P2P cost calculation)
-      SIMULATOR_URL: ${SIMULATOR_URL:-http://smartmeter-simulator:8000}
+      SIMULATOR_URL: ${SIMULATOR_URL:-http://smartmeter-simulator:8080}
 
       # Solana Blockchain Configuration
       SOLANA_RPC_URL: http://host.docker.internal:8899
@@ -199,7 +199,7 @@ services:
       ENABLE_EMAIL_NOTIFICATIONS: ${ENABLE_EMAIL_NOTIFICATIONS:-true}
 
       # CORS Configuration
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:4000}
       CORS_ALLOWED_METHODS: ${CORS_ALLOWED_METHODS:-GET,POST,PUT,PATCH,DELETE,OPTIONS}
       CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:-*}
       CORS_EXPOSE_HEADERS: ${CORS_EXPOSE_HEADERS:-*}
@@ -271,7 +271,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       TZ: ${TZ:-UTC}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
       NEXT_PUBLIC_SOLANA_RPC_URL: ${NEXT_PUBLIC_SOLANA_RPC_URL:-https://api.devnet.solana.com}
       NEXT_PUBLIC_PYTH_PRICE_SERVICE_URL: ${NEXT_PUBLIC_PYTH_PRICE_SERVICE_URL:-https://hermes.pyth.network}
     networks:
@@ -285,7 +285,7 @@ services:
       dockerfile: Dockerfile
     container_name: gridtokenx-smartmeter
     ports:
-      - "${SMARTMETER_PORT}:8000"
+      - "${SMARTMETER_PORT}:8080"
     environment:
       # General Configuration
       TZ: ${TZ:-UTC}

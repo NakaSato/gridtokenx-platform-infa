@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE settlements SET status = 'completed', transaction_hash = $1, processed_at = NOW(), updated_at = NOW() WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b7f75fdb116f1546d0bc9bb9183ebdbf3443a1b4371133b7944382bb0c1db272"
+}

@@ -151,11 +151,11 @@ services:
       TOKENIZATION_ENABLE_REAL_BLOCKCHAIN: "true"
 
       # Program IDs
-      REGISTRY_PROGRAM_ID: ${REGISTRY_PROGRAM_ID:-FQYhgNRRWDCvy9WPeZPo5oZw63iHpJZToi1uUp25jE4a}
-      ENERGY_TOKEN_PROGRAM_ID: "GHoWp5RcujaeqimAAf9RwyRQCCF23mXxVYX9iGwBYGrH"
-      TRADING_PROGRAM_ID: ${TRADING_PROGRAM_ID:-9t3s8sCgVUG9kAgVPsozj8mDpJp9cy6SF5HwRK5nvAHb}
-      ORACLE_PROGRAM_ID: ${ORACLE_PROGRAM_ID:-HtV8jTeaCVXKZVCQQVWjXcAvmiF6id9QSLVGP5MT5osX}
-      GOVERNANCE_PROGRAM_ID: ${GOVERNANCE_PROGRAM_ID:-4D9Mydr4f3BEiDoKxE2V8yMZBj53X6nxMjMWaNPAQKrN}
+      REGISTRY_PROGRAM_ID: ${REGISTRY_PROGRAM_ID:-CVS6pz2qdEmjusHCmiwe2R21KVrSoGubdEy5d766KooN}
+      ENERGY_TOKEN_PROGRAM_ID: "HaT3koMseafcCB9aUQUCrSLMDfN1km7Xik9UhZSG9UV6"
+      TRADING_PROGRAM_ID: ${TRADING_PROGRAM_ID:-8gHn9oeYcUQgNrMi8fNYGyMCKJTMwM6K413f41AANFt4}
+      ORACLE_PROGRAM_ID: ${ORACLE_PROGRAM_ID:-3hSEt5vVzbiMCegFnhdMpFGkXEDY8BinrPb8egJoS7C7}
+      GOVERNANCE_PROGRAM_ID: ${GOVERNANCE_PROGRAM_ID:-GAZQm4bHUyNhSYrAq5noBohXcTaf6dKZNDKju8499e6w}
       ENERGY_TOKEN_MINT: ${ENERGY_TOKEN_MINT}
       ENGINEERING_KEYPAIR_PATH: ${ENGINEERING_KEYPAIR_PATH:-./validator-keys/engineering-keypair.json}
       ORACLE_KEYPAIR_PATH: ${ORACLE_KEYPAIR_PATH:-./validator-keys/oracle-keypair.json}
@@ -358,6 +358,37 @@ services:
       - gridtokenx-network
     restart: unless-stopped
 
+  # Prometheus (Metrics Collection)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gridtokenx-prometheus
+    volumes:
+      - ./gridtokenx-apigateway/docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # Grafana (Visualization)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gridtokenx-grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./gridtokenx-apigateway/docker/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - gridtokenx-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
   # Mailpit SMTP Server (Development Email Testing)
   mailpit:
     image: axllent/mailpit:latest
@@ -488,3 +519,5 @@ volumes:
   mailpit_data:
   solana_ledger:
   anchor_cache:
+  prometheus_data:
+  grafana_data:

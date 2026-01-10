@@ -18,6 +18,9 @@ help:
 	@echo "  make health      - Check health of all services"
 	@echo "  make dev         - Start all services in development mode"
 	@echo "  make prod        - Start all services in production mode"
+	@echo "  make db-up       - Start only database services"
+	@echo "  make db-down     - Stop only database services"
+	@echo "  make db-logs     - View logs for database services"
 	@echo ""
 	@echo "Service-specific commands:"
 	@echo "  make logs-<service>    - View logs for specific service"
@@ -62,6 +65,16 @@ down:
 # View logs
 logs:
 	docker-compose logs -f
+
+# Database-only management
+db-up:
+	docker-compose -f docker-compose.db.yml up -d
+
+db-down:
+	docker-compose -f docker-compose.db.yml down
+
+db-logs:
+	docker-compose -f docker-compose.db.yml logs -f
 
 # Clean everything (including volumes)
 clean:

@@ -72,6 +72,24 @@ sequenceDiagram
     Escrow-->>Gateway: Success (Finality)
 ```
 
+### C. The "Win-Win-Win" Cash Flow Model
+This diagram shows that everyone (Consumer, Prosumer, Utility) benefits from the transaction.
+
+```mermaid
+graph TD
+    Consumer["Consumer (Buyer)"] -- "Pays Landed Price" --> Escrow["Escrow Service"]
+    
+    subgraph "Revenue Distribution"
+        Escrow -- "Base Price - Platform Fee" --> Prosumer["Prosumer (Seller)"]
+        Escrow -- "Wheeling Charge" --> GridUtility["Grid Utility Provider"]
+        Escrow -- "Platform Fee" --> Platform["GridTokenX Platform"]
+        Escrow -- "Loss Compensation" --> LossSinking["Grid Loss Pool"]
+    end
+    
+    Prosumer -- "REC Sale (Optional)" --> Market["Secondary REC Market"]
+    Market -- "Premium Payout" --> Prosumer
+```
+
 ---
 
 ## 3. Advanced High-Performance Topics
@@ -84,15 +102,20 @@ sequenceDiagram
 *   **Topic**: Permissionless vs. Permissioned access.
 *   **Talking Point**: "By using PDAs, our smart contracts ensure that only the **Platform Authority** can trigger a settlement, but the funds are held by the **Blockchain Runtime**, not our server. This eliminates the 'Honey Pot' risk of traditional exchanges."
 
+### C. Technical Consensus (The "Anchor" Rules)
+Your code enforces the rules of the grid at the compiler level:
+*   **The Guard Clause (`require!`)**: Show a snippet of your Rust code where you enforce `price >= limit` or `generated <= max`. This proves you are preventing "Impossible Physics Hacks."
+*   **Trust Chaining (CPI)**: Explain how the **Registry** program invokes the **Energy Token** program. "Tokens are only minted if the Registry certifies the physics."
+
 ---
 
 ## 4. The "WOW" Factors for the Committee
 
-| Feature | Why it excels |
-| :--- | :--- |
-| **Digital Twin Simulator** | Most projects use static JSON files. You built a **continuous generator** that models real physics. |
-| **Real-time WebSockets** | Using WebSockets for order book updates isn't just for show; it's necessary for high-frequency price discovery. |
-| **Automated RECs** | Renewable Energy Certificates (RECs) minted automatically via blockchain is a multi-billion dollar real-world opportunity. |
+| Feature                    | Why it excels                                                                                                              |
+| :------------------------- | :------------------------------------------------------------------------------------------------------------------------- |
+| **Digital Twin Simulator** | Most projects use static JSON files. You built a **continuous generator** that models real physics.                        |
+| **Real-time WebSockets**   | Using WebSockets for order book updates isn't just for show; it's necessary for high-frequency price discovery.            |
+| **Automated RECs**         | Renewable Energy Certificates (RECs) minted automatically via blockchain is a multi-billion dollar real-world opportunity. |
 
 ---
 

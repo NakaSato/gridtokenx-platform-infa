@@ -23,36 +23,75 @@ export default function SettlementsPage() {
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('all');
 
+    const [adminToken, setAdminToken] = useState<string>('');
+
+    useEffect(() => {
+        const savedToken = localStorage.getItem('admin_token');
+        if (savedToken) setAdminToken(savedToken);
+    }, []);
+
     useEffect(() => {
         fetchSettlements();
-    }, [statusFilter]);
+    }, [statusFilter, adminToken]);
 
     const fetchSettlements = async () => {
         setLoading(true);
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
 
         try {
-            const params = new URLSearchParams();
-            if (statusFilter !== 'all') params.append('status', statusFilter);
+            // Fetch Activity Logs as proxy for Settlements
+            const res = await fetch(`${apiBase}/api/v1/analytics/admin/activity`, { headers });
 
-            const res = await fetch(`${apiBase}/api/v1/trading/settlements?${params}`);
             if (res.ok) {
                 const data = await res.json();
-                setSettlements(data.data || data || []);
+                // Map Audit Events to Settlement View
+                const mappedSettlements = data
+                    .filter((log: any) => ['ORDER_MATCHED', 'ESCROW_LOCKED', 'SETTLEMENT_COMPLETED', 'ESCROW_RELEASED', 'ESCROW_REFUNDED'].includes(log.action))
+                    .map((log: any) => ({
+                        id: log.id.substring(0, 8),
+                        match_id: log.resource_id || '-',
+                        buyer_id: log.user_id ? log.user_id.substring(0, 8) : 'System',
+                        seller_id: '...', // distinct seller info not always in basic log
+                        energy_amount: 0, // details in metadata (would need parsing)
+                        total_value: 0,
+                        fee_amount: 0,
+                        status: mapActionToStatus(log.action),
+                        transaction_signature: null,
+                        retry_count: 0,
+                        created_at: log.created_at
+                    }));
+
+                setSettlements(mappedSettlements);
+            } else {
+                // Fallback mock if API fails or empty
+                if (!adminToken) useMockData();
             }
         } catch (error) {
             console.error('Failed to fetch settlements:', error);
-            // Mock data for demo
-            setSettlements([
-                { id: 'SET-001', match_id: 'MTH-001', buyer_id: 'user_a1b2c3', seller_id: 'user_d4e5f6', energy_amount: 100, total_value: 450, fee_amount: 4.5, status: 'completed', transaction_signature: '5xM2k...7nP9q', retry_count: 0, created_at: '2026-01-06T07:00:00Z' },
-                { id: 'SET-002', match_id: 'MTH-002', buyer_id: 'user_g7h8i9', seller_id: 'user_j0k1l2', energy_amount: 50, total_value: 225, fee_amount: 2.25, status: 'pending', transaction_signature: null, retry_count: 0, created_at: '2026-01-06T06:30:00Z' },
-                { id: 'SET-003', match_id: 'MTH-003', buyer_id: 'user_m3n4o5', seller_id: 'user_p6q7r8', energy_amount: 200, total_value: 900, fee_amount: 9.0, status: 'failed', transaction_signature: null, retry_count: 2, created_at: '2026-01-06T06:00:00Z' },
-                { id: 'SET-004', match_id: 'MTH-004', buyer_id: 'user_s9t0u1', seller_id: 'user_v2w3x4', energy_amount: 75, total_value: 340, fee_amount: 3.4, status: 'completed', transaction_signature: '8kL9m...2nQ3p', retry_count: 0, created_at: '2026-01-06T05:30:00Z' },
-                { id: 'SET-005', match_id: 'MTH-005', buyer_id: 'user_y5z6a7', seller_id: 'user_b8c9d0', energy_amount: 150, total_value: 675, fee_amount: 6.75, status: 'processing', transaction_signature: null, retry_count: 1, created_at: '2026-01-06T05:00:00Z' },
-            ]);
+            useMockData();
         } finally {
             setLoading(false);
         }
+    };
+
+    const mapActionToStatus = (action: string) => {
+        switch (action) {
+            case 'ESCROW_LOCKED': return 'locked';
+            case 'SETTLEMENT_COMPLETED': return 'completed';
+            case 'ESCROW_RELEASED': return 'released';
+            case 'ESCROW_REFUNDED': return 'failed';
+            default: return 'pending';
+        }
+    };
+
+    const useMockData = () => {
+        setSettlements([
+            { id: 'SET-001', match_id: 'MTH-001', buyer_id: 'user_a1b2c3', seller_id: 'user_d4e5f6', energy_amount: 100, total_value: 450, fee_amount: 4.5, status: 'completed', transaction_signature: '5xM2k...7nP9q', retry_count: 0, created_at: '2026-01-06T07:00:00Z' },
+            { id: 'SET-002', match_id: 'MTH-002', buyer_id: 'user_g7h8i9', seller_id: 'user_j0k1l2', energy_amount: 50, total_value: 225, fee_amount: 2.25, status: 'pending', transaction_signature: null, retry_count: 0, created_at: '2026-01-06T06:30:00Z' },
+            { id: 'SET-003', match_id: 'MTH-003', buyer_id: 'user_m3n4o5', seller_id: 'user_p6q7r8', energy_amount: 200, total_value: 900, fee_amount: 9.0, status: 'failed', transaction_signature: null, retry_count: 2, created_at: '2026-01-06T06:00:00Z' },
+        ]);
     };
 
     const retrySettlement = async (settlementId: string) => {
@@ -71,8 +110,10 @@ export default function SettlementsPage() {
 
     const statusColors: Record<string, string> = {
         pending: 'bg-yellow-500/20 text-yellow-400',
+        locked: 'bg-orange-500/20 text-orange-400', // New status
         processing: 'bg-blue-500/20 text-blue-400',
         completed: 'bg-green-500/20 text-green-400',
+        released: 'bg-teal-500/20 text-teal-400', // New status
         failed: 'bg-red-500/20 text-red-400',
         permanently_failed: 'bg-red-800/20 text-red-500',
     };
@@ -89,8 +130,8 @@ export default function SettlementsPage() {
             {/* Page Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">Settlements</h1>
-                    <p className="text-[var(--muted)]">View and manage blockchain settlements</p>
+                    <h1 className="text-2xl font-bold">Settlements & Escrow</h1>
+                    <p className="text-[var(--muted)]">Monitor smart contract escrow states</p>
                 </div>
                 <button onClick={fetchSettlements} className="btn-primary flex items-center gap-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

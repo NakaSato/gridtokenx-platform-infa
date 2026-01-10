@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { StatCard } from '@/components';
+import { StatCard, ZoneInsights } from '@/components';
+import { ZoneEconomicInsights } from '@/components/ZoneInsights';
 
 interface RevenueRecord {
     id: string;
@@ -27,32 +28,62 @@ export default function RevenuePage() {
         grand_total: 0,
     });
     const [records, setRecords] = useState<RevenueRecord[]>([]);
+    const [zoneInsights, setZoneInsights] = useState<ZoneEconomicInsights | null>(null);
     const [loading, setLoading] = useState(true);
-    const [dateRange, setDateRange] = useState('week');
+    const [dateRange, setDateRange] = useState('month'); // Changed default to month
+    const [adminToken, setAdminToken] = useState<string>('');
 
     useEffect(() => {
-        fetchRevenueData();
-    }, [dateRange]);
+        const savedToken = localStorage.getItem('admin_token');
+        if (savedToken) setAdminToken(savedToken);
+    }, []);
+
+    useEffect(() => {
+        if (adminToken || dateRange) {
+            fetchRevenueData();
+        }
+    }, [dateRange, adminToken]);
 
     const fetchRevenueData = async () => {
+        if (!adminToken) {
+            console.warn("No admin token found, some data might be missing");
+        }
         setLoading(true);
         try {
             // Fetch from API
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-            const [summaryRes, recordsRes] = await Promise.all([
-                fetch(`${apiBase}/api/v1/trading/revenue/summary`),
-                fetch(`${apiBase}/api/v1/trading/revenue/records?limit=20`),
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (adminToken) {
+                headers['Authorization'] = `Bearer ${adminToken}`;
+            }
+
+            // Map timeframe to backend expected format
+            const timeframe = dateRange === 'today' ? '24h' : (dateRange === 'week' ? '7d' : '30d');
+
+            const [summaryRes, recordsRes, zoneRes] = await Promise.all([
+                fetch(`${apiBase}/api/v1/trading/revenue/summary`, { headers }),
+                fetch(`${apiBase}/api/v1/trading/revenue/records?limit=20`, { headers }),
+                fetch(`${apiBase}/api/v1/analytics/admin/zones/economic?timeframe=${timeframe}`, { headers }).catch(() => null),
             ]);
 
-            if (summaryRes.ok) {
+            if (summaryRes?.ok) {
                 const summaryData = await summaryRes.json();
                 setSummary(summaryData.data || summaryData);
             }
 
-            if (recordsRes.ok) {
+            if (recordsRes?.ok) {
                 const recordsData = await recordsRes.json();
                 setRecords(recordsData.data || recordsData || []);
+            }
+
+            if (zoneRes?.ok) {
+                const zoneData = await zoneRes.json();
+                setZoneInsights(zoneData);
+            } else {
+                setZoneInsights(null);
             }
         } catch (error) {
             console.error('Failed to fetch revenue data:', error);
@@ -93,13 +124,13 @@ export default function RevenuePage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold">Revenue Dashboard</h1>
-                    <p className="text-[var(--muted)]">Track platform earnings and fee breakdown</p>
+                    <p className="text-muted">Track platform earnings and fee breakdown</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <select
                         value={dateRange}
                         onChange={(e) => setDateRange(e.target.value)}
-                        className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-4 py-2"
+                        className="bg-card border border-border rounded-lg px-4 py-2"
                     >
                         <option value="today">Today</option>
                         <option value="week">This Week</option>
@@ -201,31 +232,31 @@ export default function RevenuePage() {
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                                 <span className="text-2xl font-bold">100%</span>
-                                <span className="text-xs text-[var(--muted)]">Total</span>
+                                <span className="text-xs text-muted">Total</span>
                             </div>
                         </div>
 
                         {/* Legend */}
                         <div className="space-y-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-4 h-4 rounded bg-[var(--success)]"></div>
+                                <div className="w-4 h-4 rounded bg-(--success)"></div>
                                 <div>
                                     <p className="font-medium">Platform Fees</p>
-                                    <p className="text-sm text-[var(--muted)]">{((summary.total_fees / summary.grand_total) * 100).toFixed(1)}% (฿{summary.total_fees.toLocaleString()})</p>
+                                    <p className="text-sm text-muted">{((summary.total_fees / summary.grand_total) * 100).toFixed(1)}% (฿{summary.total_fees.toLocaleString()})</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="w-4 h-4 rounded bg-[var(--accent)]"></div>
+                                <div className="w-4 h-4 rounded bg-accent"></div>
                                 <div>
                                     <p className="font-medium">Wheeling Charges</p>
-                                    <p className="text-sm text-[var(--muted)]">{((summary.total_wheeling / summary.grand_total) * 100).toFixed(1)}% (฿{summary.total_wheeling.toLocaleString()})</p>
+                                    <p className="text-sm text-muted">{((summary.total_wheeling / summary.grand_total) * 100).toFixed(1)}% (฿{summary.total_wheeling.toLocaleString()})</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="w-4 h-4 rounded bg-[var(--warning)]"></div>
+                                <div className="w-4 h-4 rounded bg-(--warning)"></div>
                                 <div>
                                     <p className="font-medium">Grid Loss Costs</p>
-                                    <p className="text-sm text-[var(--muted)]">{((summary.total_loss_cost / summary.grand_total) * 100).toFixed(1)}% (฿{summary.total_loss_cost.toLocaleString()})</p>
+                                    <p className="text-sm text-muted">{((summary.total_loss_cost / summary.grand_total) * 100).toFixed(1)}% (฿{summary.total_loss_cost.toLocaleString()})</p>
                                 </div>
                             </div>
                         </div>
@@ -236,35 +267,38 @@ export default function RevenuePage() {
                 <div className="card">
                     <h3 className="text-lg font-semibold mb-4">Revenue Insights</h3>
                     <div className="space-y-4">
-                        <div className="p-4 rounded-lg bg-gradient-to-r from-[var(--success)]/10 to-transparent border-l-4 border-[var(--success)]">
-                            <p className="text-sm text-[var(--muted)]">Avg. Fee per Settlement</p>
+                        <div className="p-4 rounded-lg bg-linear-to-r from-(--success)/10 to-transparent border-l-4 border-(--success)">
+                            <p className="text-sm text-muted">Avg. Fee per Settlement</p>
                             <p className="text-xl font-bold">฿245.50</p>
                         </div>
-                        <div className="p-4 rounded-lg bg-gradient-to-r from-[var(--accent)]/10 to-transparent border-l-4 border-[var(--accent)]">
-                            <p className="text-sm text-[var(--muted)]">Cross-Zone Rate</p>
+                        <div className="p-4 rounded-lg bg-linear-to-r from-(--accent)/10 to-transparent border-l-4 border-accent">
+                            <p className="text-sm text-muted">Cross-Zone Rate</p>
                             <p className="text-xl font-bold">32%</p>
                         </div>
-                        <div className="p-4 rounded-lg bg-gradient-to-r from-[var(--warning)]/10 to-transparent border-l-4 border-[var(--warning)]">
-                            <p className="text-sm text-[var(--muted)]">Avg. Loss Factor</p>
+                        <div className="p-4 rounded-lg bg-linear-to-r from-(--warning)/10 to-transparent border-l-4 border-(--warning)">
+                            <p className="text-sm text-muted">Avg. Loss Factor</p>
                             <p className="text-xl font-bold">2.8%</p>
                         </div>
                     </div>
                 </div>
             </div>
 
+            {/* Zone Insights Section */}
+            <ZoneInsights insights={zoneInsights} loading={loading} />
+
             {/* Revenue Records Table */}
             <div className="card">
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h3 className="text-lg font-semibold">Recent Revenue Entries</h3>
-                        <p className="text-sm text-[var(--muted)]">Detailed transaction log</p>
+                        <p className="text-sm text-muted">Detailed transaction log</p>
                     </div>
                     <button className="btn-secondary text-sm">View All Records</button>
                 </div>
 
                 {loading ? (
                     <div className="flex items-center justify-center py-12">
-                        <div className="w-8 h-8 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -283,15 +317,15 @@ export default function RevenuePage() {
                                 {records.map((record) => (
                                     <tr key={record.id}>
                                         <td className="font-mono text-sm">{record.id}</td>
-                                        <td className="font-mono text-sm text-[var(--muted)]">{record.settlement_id}</td>
+                                        <td className="font-mono text-sm text-muted">{record.settlement_id}</td>
                                         <td>
                                             <span className={`badge ${typeColors[record.revenue_type] || 'badge-info'}`}>
                                                 {typeLabels[record.revenue_type] || record.revenue_type}
                                             </span>
                                         </td>
-                                        <td className="font-semibold text-[var(--success)]">+฿{record.amount.toLocaleString()}</td>
-                                        <td className="text-[var(--muted)]">{record.description}</td>
-                                        <td className="text-[var(--muted)]">
+                                        <td className="font-semibold text-success">+฿{record.amount.toLocaleString()}</td>
+                                        <td className="text-muted">{record.description}</td>
+                                        <td className="text-muted">
                                             {new Date(record.created_at).toLocaleDateString()}
                                         </td>
                                     </tr>

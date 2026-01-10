@@ -14,24 +14,44 @@ interface User {
     is_verified: boolean;
 }
 
+interface AdminStats {
+    total_users: number;
+    total_meters: number;
+    active_meters: number;
+}
+
 export default function UsersPage() {
+    const [stats, setStats] = useState<AdminStats | null>(null);
+    const [adminToken, setAdminToken] = useState<string>('');
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
 
     useEffect(() => {
-        fetchUsers();
+        const savedToken = localStorage.getItem('admin_token');
+        if (savedToken) setAdminToken(savedToken);
     }, []);
 
-    const fetchUsers = async () => {
-        setLoading(true);
-        try {
-            // Would fetch from API
-            // const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users`);
-            // const data = await res.json();
+    useEffect(() => {
+        fetchData();
+    }, [adminToken]);
 
-            // Mock data for demo
+    const fetchData = async () => {
+        setLoading(true);
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
+
+        try {
+            // Fetch real stats
+            const statsRes = await fetch(`${apiBase}/api/v1/analytics/admin/stats`, { headers }).catch(() => null);
+            if (statsRes?.ok) {
+                const data = await statsRes.json();
+                setStats(data);
+            }
+
+            // Mock Data for User List (No API yet)
             setUsers([
                 { id: '1', email: 'alice@example.com', name: 'Alice Johnson', role: 'user', wallet_address: '7xKX...3mN2', balance: 15000, locked_amount: 2500, created_at: '2025-12-01', is_verified: true },
                 { id: '2', email: 'bob@example.com', name: 'Bob Smith', role: 'user', wallet_address: '9pL2...7xK4', balance: 8500, locked_amount: 0, created_at: '2025-12-05', is_verified: true },
@@ -41,7 +61,7 @@ export default function UsersPage() {
                 { id: '6', email: 'frank@example.com', name: 'Frank Miller', role: 'user', wallet_address: '8nH4...5kJ2', balance: 3200, locked_amount: 800, created_at: '2025-12-28', is_verified: true },
             ]);
         } catch (error) {
-            console.error('Failed to fetch users:', error);
+            console.error('Failed to fetch data:', error);
         } finally {
             setLoading(false);
         }
@@ -90,7 +110,7 @@ export default function UsersPage() {
                     </div>
                     <div>
                         <p className="text-sm text-[var(--muted)]">Total Users</p>
-                        <p className="text-2xl font-bold">{users.length}</p>
+                        <p className="text-2xl font-bold">{stats?.total_users ?? users.length}</p>
                     </div>
                 </div>
                 <div className="card flex items-center gap-4">
@@ -111,8 +131,8 @@ export default function UsersPage() {
                         </svg>
                     </div>
                     <div>
-                        <p className="text-sm text-[var(--muted)]">With Wallets</p>
-                        <p className="text-2xl font-bold">{users.filter(u => u.wallet_address).length}</p>
+                        <p className="text-sm text-[var(--muted)]">Smart Meters</p>
+                        <p className="text-2xl font-bold">{stats?.total_meters ?? 0}</p>
                     </div>
                 </div>
                 <div className="card flex items-center gap-4">
@@ -122,8 +142,8 @@ export default function UsersPage() {
                         </svg>
                     </div>
                     <div>
-                        <p className="text-sm text-[var(--muted)]">Unverified</p>
-                        <p className="text-2xl font-bold">{users.filter(u => !u.is_verified).length}</p>
+                        <p className="text-sm text-[var(--muted)]">Active Meters</p>
+                        <p className="text-2xl font-bold">{stats?.active_meters ?? 0}</p>
                     </div>
                 </div>
             </div>

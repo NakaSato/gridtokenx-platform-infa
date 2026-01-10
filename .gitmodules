@@ -1,0 +1,15 @@
+[submodule "gridtokenx-anchor"]
+	path = gridtokenx-anchor
+	url = https://github.com/NakaSato/gridtokenx-anchor.git
+[submodule "gridtokenx-apigateway"]
+	path = gridtokenx-apigateway
+	url = https://github.com/NakaSato/gridtokenx-apigateway.git
+[submodule "gridtokenx-smartmeter-simulator"]
+	path = gridtokenx-smartmeter-simulator
+	url = https://github.com/NakaSato/gridtokenx-smartmeter-simulator.git
+[submodule "gridtokenx-trading"]
+	path = gridtokenx-trading
+	url = https://github.com/NakaSato/gridtokenx-trading.git
+[submodule "gridtokenx-wasm"]
+	path = gridtokenx-wasm
+	url = https://github.com/NakaSato/gridtokenx-wasm

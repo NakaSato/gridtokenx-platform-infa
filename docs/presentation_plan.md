@@ -9,23 +9,7 @@
 ## 2. Theoretical Architecture & System Design (3 mins)
 *Engineering a high-performance, trustless middleware:*
 
-```mermaid
-graph TD
-    subgraph "Hardware Abstraction (IoT)"
-        SMS["Smart Meter Simulator"]
-    end
-    subgraph "High-Performance Middleware (Rust)"
-        AG["API Gateway (Axum/Tokio)"]
-    end
-    subgraph "Consensus & State Layer (Solana)"
-        AP["Anchor Programs"]
-    end
-
-    SMS -->|Telemetry| AG
-    AG -->|Derived Addresses & Escrow| AP
-    AP -->|On-chain Match & Settlement| AG
-    AG -->|State Broadcast| SMS
-```
+![System Architecture](architecture/architecture_protocols.png)
 
 ## 3. Engineering Implementation Details (5 mins)
 

@@ -1,0 +1,53 @@
+@startuml
+!include <C4/C4_Container>
+!include <tupadr3/font-awesome-5/user>
+!include <tupadr3/font-awesome-5/coins>
+!include <tupadr3/font-awesome-5/university>
+!include <tupadr3/font-awesome-5/solar_panel>
+
+' Visual Configuration
+skinparam defaultFontName "Helvetica Neue"
+skinparam defaultFontSize 14
+skinparam roundCorner 8
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+
+title **"Win-Win-Win" Cash Flow & Value Distribution**\nSocio-Economic Model of the GridTokenX Platform
+
+' Participant Definitions
+Person(consumer, "Consumer (Buyer)", "Pays Landed Price for clean energy.", $sprite="user")
+
+System_Boundary(platform_core, "Platform Settlement (Escrow)") {
+    Container(escrow, "Escrow Vault", "On-Chain PDA", "Immutable distributor of incoming funds.", $sprite="coins")
+}
+
+System_Boundary(revenue_tier, "Revenue Distribution") {
+    Container(prosumer, "Prosumer (Seller)", "Solar/Wind Producer", "Earns Base Price - Small Fee.", $sprite="solar_panel")
+    Container(utility, "Grid Utility", "Infrastructure Provider", "Earns Wheeling & Network Charges.", $sprite="university")
+    Container(company, "GridTokenX", "Platform Operator", "Earns sustainability fees.", $sprite="coins")
+    Container(loss_pool, "Grid Loss Pool", "Zonal Compensation", "Offsetting physical transmission losses.")
+}
+
+System_Ext(market, "REC Market", "External secondary market for Renewable Energy Certificates.")
+
+' Value Flows
+Rel(consumer, escrow, "Pays Landed Price", "USDC / GXT")
+
+Rel_D(escrow, prosumer, "Net Payout", "Base Price - Platform Fee")
+Rel_D(escrow, utility, "Infrastructure Rent", "Wheeling Charge")
+Rel_D(escrow, company, "Sustainability", "Platform Fee")
+Rel_D(escrow, loss_pool, "Loss Offset", "Transmission Loss Margin")
+
+Rel_Neighbor(prosumer, market, "REC Sale (Optional)", "Secondary REC Market")
+Rel_Back(prosumer, market, "Premium Payout", "Incentive Credit")
+
+' Summary Note
+note top of escrow #E1F5FE
+  **Transparency:**
+  Every cent is trackable 
+  on the block explorer. 
+  No hidden charges.
+end note
+
+footer GridTokenX v2.0 | Socio-Economic Value Model | 2026
+@enduml

@@ -97,6 +97,46 @@ services:
       timeout: 10s
       retries: 5
 
+  # Kafka Message Broker (KRaft Mode - No Zookeeper)
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: gridtokenx-kafka
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    environment:
+      TZ: ${TZ}
+      # KRaft Configuration (No Zookeeper needed)
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Topic Configuration
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      # Performance Tuning
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # Cluster ID for KRaft
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   # API Gateway (Rust/Axum)
   apigateway:
     build:
@@ -249,12 +289,20 @@ services:
       REC_ISSUING_AUTHORITY: ${REC_ISSUING_AUTHORITY}
       REC_CERTIFICATION_ENABLED: ${REC_CERTIFICATION_ENABLED}
       CARBON_OFFSET_RATE: ${CARBON_OFFSET_RATE}
+
+      # Kafka Configuration
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_TOPIC: ${KAFKA_TOPIC:-meter-readings}
+      KAFKA_CONSUMER_GROUP: ${KAFKA_CONSUMER_GROUP:-gridtokenx-apigateway}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       mailpit:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - gridtokenx-network
@@ -303,8 +351,10 @@ services:
       INFLUXDB_ORG: ${INFLUXDB_ORG}
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
 
-      # Kafka Configuration (Optional)
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-}
+      # Kafka Configuration
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_TOPIC: ${KAFKA_TOPIC:-meter-readings}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
 
       # Simulation Configuration
       SIMULATION_INTERVAL: ${SIMULATION_INTERVAL:-}
@@ -354,6 +404,8 @@ services:
         condition: service_healthy
       apigateway:
         condition: service_started
+      kafka:
+        condition: service_healthy
     networks:
       - gridtokenx-network
     restart: unless-stopped
@@ -521,3 +573,4 @@ volumes:
   anchor_cache:
   prometheus_data:
   grafana_data:
+  kafka_data:

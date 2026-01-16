@@ -71,6 +71,7 @@ update_env_file() {
 echo -e "${YELLOW}🧹 Cleaning up existing processes...${NC}"
 pkill -f "solana-test-validator" 2>/dev/null || true
 pkill -f "api-gateway" 2>/dev/null || true
+pkill -f "uvicorn" 2>/dev/null || true
 sleep 2
 echo -e "${GREEN}✅ Cleanup complete${NC}"
 
@@ -93,8 +94,11 @@ echo -e "${GREEN}✅ Docker services running${NC}"
 echo ""
 echo -e "${YELLOW}🔗 Starting Solana test validator...${NC}"
 
-# Start validator in background with reset
-solana-test-validator --reset --quiet &
+# Ensure log directory exists
+mkdir -p scripts/logs
+
+# Start validator in background with reset and log redirection
+solana-test-validator --reset > scripts/logs/validator.log 2>&1 &
 VALIDATOR_PID=$!
 echo "Validator PID: $VALIDATOR_PID"
 
@@ -192,76 +196,61 @@ echo -e "${GREEN}✅ Environment configured${NC}"
 
 
 # ============================================================================
-# Step 8: Start Application Services (Native Terminal Tabs)
+# Step 8: Start Application Services (Concurrently)
 # ============================================================================
 echo ""
-echo -e "${YELLOW}🚀 Launching application services in new Terminal tabs...${NC}"
+echo -e "${YELLOW}🚀 Launching application services...${NC}"
+
+# Check for node_modules in frontend projects
+if [ ! -d "$PROJECT_ROOT/gridtokenx-admin/node_modules" ]; then
+    echo -e "${RED}Error: gridtokenx-admin/node_modules missing. Please run 'npm install' or 'bun install' in gridtokenx-admin.${NC}"
+    exit 1
+fi
+if [ ! -d "$PROJECT_ROOT/gridtokenx-trading/node_modules" ]; then
+    echo -e "${RED}Error: gridtokenx-trading/node_modules missing. Please run 'npm install' or 'bun install' in gridtokenx-trading.${NC}"
+    exit 1
+fi
 
 # Function to run command in new tab
 run_in_new_tab() {
     local title="$1"
     local command="$2"
+    local dir="$3"
     
-    # Use simpler apple script approach
-    osascript -e "tell application \"Terminal\" to do script \"$command\"" >/dev/null
+    echo "  • Starting $title..."
+    # AppleScript to open new tab/window and run command
+    # We cd into the directory explicitly in the command
+    osascript -e "tell application \"Terminal\" 
+        do script \"cd $dir && $command\"
+    end tell" >/dev/null
 }
 
 # 1. API Gateway
-echo "  • Starting API Gateway..."
-# Simply cd and cargo run. The app loads .env via dotenvy
-GATEWAY_CMD="cd $GATEWAY_DIR && cargo run --release --bin api-gateway"
-run_in_new_tab "API Gateway" "$GATEWAY_CMD"
+run_in_new_tab "API Gateway" "cargo run --release --bin api-gateway" "$GATEWAY_DIR"
 
-# 2. Smart Meter Simulator
-echo "  • Starting Smart Meter Simulator..."
-SIM_CMD="cd $PROJECT_ROOT/gridtokenx-smartmeter-simulator && ./dev-server.sh"
-run_in_new_tab "Simulator" "$SIM_CMD"
+# 2. Smart Meter Simulator (Frontend)
+run_in_new_tab "Simulator UI" "npm run dev" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
 
-# 3. Trading UI
-echo "  • Starting Trading UI..."
-TRADING_CMD="cd $PROJECT_ROOT/gridtokenx-trading && npm run dev"
-run_in_new_tab "Trading UI" "$TRADING_CMD"
+# 3. Smart Meter Simulator (Python API)
+run_in_new_tab "Simulator API" "source .venv/bin/activate && export PYTHONPATH=\$PYTHONPATH:. && python -m uvicorn src.app.main:app --reload --host 0.0.0.0 --port 8000" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
 
-# ============================================================================
-# Step 9: Seed Simulator Accounts (Wait briefly for API to init)
-# ============================================================================
-echo ""
-echo -e "${YELLOW}⏳ Waiting 10s for services to initialize before seeding...${NC}"
-sleep 10
+# 4. Trading UI
+run_in_new_tab "Trading UI" "npm run dev" "$PROJECT_ROOT/gridtokenx-trading"
 
-echo -e "${YELLOW}🌱 Seeding simulator accounts...${NC}"
-"$PROJECT_ROOT/scripts/seed_simulator_tokens.sh" || echo -e "${RED}Warning: Failed to seed simulator tokens${NC}"
+# 5. Admin UI
+run_in_new_tab "Admin UI" "npm run dev" "$PROJECT_ROOT/gridtokenx-admin"
 
+# 6. Tail Validator Logs
+run_in_new_tab "Validator Logs" "tail -f $PROJECT_ROOT/scripts/logs/validator.log" "$PROJECT_ROOT"
 
-# ============================================================================
-# Final Summary
-# ============================================================================
 echo ""
-echo -e "${BLUE}╔════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║           Development Environment Ready!           ║${NC}"
-echo -e "${BLUE}╚════════════════════════════════════════════════════╝${NC}"
+echo -e "${YELLOW}NOTE: Services are running in separate Terminal windows.${NC}"
+echo -e "${YELLOW}To stop them, you can close the windows or run ./scripts/stop-dev.sh${NC}"
+
+# We don't trap EXIT anymore because we want the validator to keep running in background 
+# (although stop-dev.sh is preferred for cleanup)
+# But wait, if this script exits, the background validator might die if not disowned.
+# Let's disown the validator process so it survives script exit.
+disown $VALIDATOR_PID
 echo ""
-echo -e "${GREEN}Infrastructure running in background/Docker:${NC}"
-echo "  • Solana Validator:  $RPC_URL"
-echo "  • PostgreSQL:        localhost:5432"
-echo "  • Redis:             localhost:6379"
-echo ""
-echo -e "${GREEN}Services launched in new Terminal tabs:${NC}"
-echo "  • API Gateway:       http://localhost:4000"
-echo "  • Simulator:         http://localhost:8080"
-echo "  • Trading UI:        http://localhost:3000"
-echo ""
-echo -e "${CYAN}Token Configuration:${NC}"
-echo "  • Energy Token Mint: $ENERGY_TOKEN_MINT"
-echo "  • Mint Authority:    $DEV_PUBKEY"
-echo ""
-echo -e "${YELLOW}Key Endpoints:${NC}"
-echo "  • Register User:     POST /api/v1/users"
-echo "  • Login:             POST /api/v1/auth/token"
-echo "  • Register Meter:    POST /api/v1/meters"
-echo "  • Check Balance:     GET /api/v1/wallets/{address}/balance"
-echo ""
-echo -e "${YELLOW}To stop background services:${NC}"
-echo "  ./scripts/stop-dev.sh"
-echo ""
-echo -e "${GREEN}Happy coding! 🎉${NC}"
+echo -e "${GREEN}✅ Development environment launched!${NC}"

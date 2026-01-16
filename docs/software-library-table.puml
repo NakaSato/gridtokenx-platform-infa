@@ -1,0 +1,83 @@
+@startuml
+!include <tupadr3/devicons/react>
+!include <tupadr3/devicons/python>
+!include <tupadr3/devicons/rust>
+!include <tupadr3/font-awesome-5/coins>
+!include <tupadr3/font-awesome-5/cubes>
+!include <tupadr3/font-awesome-5/database>
+!include <tupadr3/font-awesome-5/cloud>
+
+' Visual Configuration
+skinparam defaultFontName "Helvetica Neue"
+skinparam defaultFontSize 12
+skinparam roundCorner 8
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+
+title <size:20>**GridTokenX - Software Library & Stack**</size>\nComponent Distribution & Dependency Layer
+
+' Map Styling for Premium Look
+skinparam map {
+    BackgroundColor #F8F9FA
+    BorderColor #CED4DA
+    FontColor #212529
+    Padding 12
+}
+
+' Layer 1: Client Applications
+map "<size:16><color:#2196F3><$react></color> Trading & Admin Frontends\n<size:11><color:#6c757d>User Interface & Application Layer</color></size>" as FE {
+    **● Framework** => <color:#495057>Next.js 15, React 19, TypeScript 5.7</color>
+    **● Styling** => <color:#495057>Tailwind CSS v4, Lucide Icons, Shadcn/UI</color>
+    **● Visualization** => <color:#495057>Recharts, Chart.js, Mapbox GL JS</color>
+    **● Connectivity** => <color:#495057>@solana/web3.js, Wallet Adapter, TanStack Query</color>
+    **● Security** => <color:#495057>Web3 Authentication, Wallet-Standard Protocol</color>
+}
+
+' Layer 2: Backend Services
+together {
+    map "<size:16><color:#FF9800><$rust></color> API Gateway\n<size:11><color:#6c757d>High-Performance Middleware</color></size>" as BE {
+        **● Server** => <color:#495057>Axum 0.8, Tower, Hyper 1.0 (async)</color>
+        **● Runtime** => <color:#495057>Tokio Stack, MPSC Channels, Futures</color>
+        **● Database** => <color:#495057>SQLx (Postgres 16), Redis 7 (Caching)</color>
+        **● Protocols** => <color:#495057>Kafka (rdkafka), JSON RPC, WebSocket (WSS)</color>
+        **● Auth** => <color:#495057>JWT (Jsonwebtoken), Bcrypt, Ed25519 Segregation</color>
+        **● Specs** => <color:#495057>Utoipa (OpenAPI), Metrics-Prometheus</color>
+    }
+
+    map "<size:16><color:#4CAF50><$python></color> Grid Simulator\n<size:11><color:#6c757d>Digital Twin & Telemetry</color></size>" as SIM {
+        **● API Core** => <color:#495057>FastAPI 0.104+, Pydantic v2</color>
+        **● Analytics** => <color:#495057>Pandas 2.2, NumPy 1.26, Matplotlib</color>
+        **● Streaming** => <color:#495057>Kafka-Python, InfluxDB-Client, Websockets</color>
+        **● Persistence** => <color:#495057>Psycopg2 (PostgreSQL State Bridge)</color>
+        **● Realism** => <color:#495057>Asyncio Event Loops, Sine-Wave Modeling</color>
+    }
+}
+
+' Layer 3: Infrastructure & Blockchain
+together {
+    map "<size:16><color:#673AB7><$coins></color> Anchor Programs\n<size:11><color:#6c757d>On-Chain Business Logic</color></size>" as BC {
+        **● Framework** => <color:#495057>Anchor Lang 0.30+, Solana Program SDK</color>
+        **● Standards** => <color:#495057>SPL Token (Token-2022), Metaplex Metadata</color>
+        **● Primitives** => <color:#495057>Program Derived Addresses (PDAs), Seeds</color>
+        **● Execution** => <color:#495057>Sealevel BPF, Cross-Program Invocation (CPI)</color>
+        **● Validation** => <color:#495057>Invariant Checks, Access Control Guard Macros</color>
+    }
+
+    map "<size:16><color:#F06292><$database></color> Persistence Tier\n<size:11><color:#6c757d>Enterprise Data & Streaming</color></size>" as DATA {
+        **● Primary DB** => <color:#495057>PostgreSQL 16 (ACID Compliance)</color>
+        **● Caching** => <color:#495057>Redis 7.2 (Pub/Sub & Session Lock)</color>
+        **● Telemetry** => <color:#495057>InfluxDB (High-Frequency Time-Series)</color>
+        **● Messaging** => <color:#495057>Apache Kafka (Event Ingestion Layer)</color>
+        **● Log Arch** => <color:#495057>Prometheus, Grafana, OpenTelemetry</color>
+    }
+}
+
+' Layout arrangement for vertical flow
+FE -[hidden]- BE
+BE -[hidden]- SIM
+BE -[hidden]- BC
+SIM -[hidden]- DATA
+BC -[hidden]- DATA
+
+footer <size:10>GridTokenX Technical Design Document | Software Architecture v2.0 | 2026</size>
+@enduml

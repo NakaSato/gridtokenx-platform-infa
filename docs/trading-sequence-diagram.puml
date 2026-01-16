@@ -1,0 +1,154 @@
+@startuml
+!pragma teoz true
+
+' ============================================================================
+' GridTokenX - P2P Trading Sequence Diagram
+' Core Market Mechanics: Order Placement, Escrow, and Atomic Settlement
+' Version: 1.0
+' ============================================================================
+
+title <size:20>**GridTokenX - P2P Trading Sequence**</size>\nOrder Lifecycle & Trustless Settlement Flow
+
+' Visual Configuration
+skinparam defaultFontName "Helvetica Neue"
+skinparam defaultFontSize 12
+skinparam roundCorner 8
+skinparam shadowing false
+
+skinparam sequence {
+    ArrowColor #2C3E50
+    LifeLineBorderColor #34495E
+    LifeLineBackgroundColor #ECF0F1
+    ParticipantBorderColor #2980B9
+    ParticipantBackgroundColor #3498DB
+    ParticipantFontColor white
+    ParticipantFontStyle bold
+    ActorBorderColor #27AE60
+    ActorBackgroundColor #2ECC71
+    GroupBackgroundColor #F8F9FA
+}
+
+skinparam note {
+    BackgroundColor #FFF9C4
+    BorderColor #F9A825
+}
+
+' Participants
+actor "Energy Buyer\n(Consumer)" as Buyer #27AE60
+actor "Energy Seller\n(Prosumer)" as Seller #27AE60
+
+box "Frontend Layer" #E3F2FD
+    participant "Trading App\n//Next.js//" as FE #2196F3
+end box
+
+box "Backend Layer" #FFF3E0
+    participant "API Gateway\n//Rust / Axum//" as API #FF9800
+    participant "Matching Engine\n//In-Memory//" as ME #E67E22
+end box
+
+box "Solana Blockchain" #EDE7F6
+    participant "Trading Program\n//Anchor PDA//" as ANCHOR #673AB7
+    participant "SPL Token\n//Vaults//" as SPL #512DA8
+end box
+
+database "PostgreSQL" as DB #F3E5F5
+
+' ============================================================================
+' PHASE 1: ORDER PLACEMENT & ESCROW LOCKING
+' ============================================================================
+== <size:14>**① Order Placement & Escrow Locking**</size> ==
+
+autonumber "<b>[0]</b>"
+
+Buyer -> FE : Place Buy Order\n(Price, Amount, Zone)
+activate FE #BBDEFB
+FE -> API : POST /api/trading/orders\n{type: BUY, ...}
+activate API #FFE0B2
+
+API -> DB : INSERT orders (status: PENDING)
+activate DB #E1BEE7
+DB --> API : order_id
+deactivate DB
+
+API --> FE : Escrow Request\n{vault_pda, amount}
+FE -> Buyer : Sign Escrow Transaction
+Buyer -> FE : Signed Tx
+FE -> ANCHOR : invoke: lock_funds\n{amount, order_id}
+activate ANCHOR #D1C4E9
+ANCHOR -> SPL : Transfer USDC to Vault
+activate SPL #C5CAE9
+SPL --> ANCHOR : Success
+deactivate SPL
+ANCHOR --> FE : Tx Signature
+deactivate ANCHOR
+
+FE -> API : POST /api/trading/confirm_escrow\n{tx_sig}
+API -> DB : UPDATE orders (status: OPEN)
+API -> ME : Add Order to Book
+ME --> API : Added
+API --> FE : Order Active
+deactivate API
+FE --> Buyer : Order Placed Successfully
+deactivate FE
+
+... Similarly for Seller (Energy Tokens locked in Escrow) ...
+
+' ============================================================================
+' PHASE 2: MATCHING & OPTIMIZATION
+' ============================================================================
+== <size:14>**② High-Performance Matching**</size> ==
+
+note over ME
+  **Landed Cost Matching:**
+  Sorts candidates by:
+  Base Price + Zonal Loss + Wheeling
+end note
+
+ME -> ME : Execute Matching Cycle
+ME -> API : Match Found!\n{buy_id, sell_id, qty, price}
+activate API #FFE0B2
+
+' ============================================================================
+' PHASE 3: ATOMIC SETTLEMENT
+' ============================================================================
+== <size:14>**③ Atomic Blockchain Settlement**</size> ==
+
+API -> ANCHOR : invoke: settle_match\n{buy_order, sell_order}
+activate ANCHOR #D1C4E9
+
+note over ANCHOR
+  **Atomic Execution Guarantee:**
+  All transfers must succeed or
+  the entire matching reverts.
+end note
+
+ANCHOR -> SPL : CPI: Transfer GXT to Buyer
+activate SPL #C5CAE9
+SPL --> ANCHOR : OK
+deactivate SPL
+
+ANCHOR -> SPL : CPI: Transfer USDC to Seller
+activate SPL #C5CAE9
+SPL --> ANCHOR : OK
+deactivate SPL
+
+ANCHOR -> SPL : CPI: Collect Platform Fees
+activate SPL #C5CAE9
+SPL --> ANCHOR : OK
+deactivate SPL
+
+ANCHOR --> API : Settlement Signature
+deactivate ANCHOR
+
+API -> DB : UPDATE orders (status: SETTLED)
+API -> DB : INSERT trade_history
+API --> FE : Real-time Notification (WebSocket)
+activate FE #BBDEFB
+FE --> Buyer : 🔔 Energy Purchased!
+FE --> Seller : 🔔 Energy Sold!
+deactivate FE
+deactivate API
+
+' Footer
+footer GridTokenX v2.0 | P2P Trading Lifecycle | 2026
+@enduml

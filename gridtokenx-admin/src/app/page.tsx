@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { StatCard, RevenueChart } from '@/components';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { StatCard, RevenueChart, PlatformHealthCard, RecentActivityTable } from '@/components';
 import { Skeleton } from '@/components/ui/skeleton';
+import { defaultApiClient, AdminStatsResponse, AuditEventRecord, DetailedHealthStatus } from '@/lib/api-client';
 
 interface DashboardStats {
   total_revenue: number;
@@ -15,6 +17,7 @@ interface DashboardStats {
   energy_change: string;
 }
 
+// Interfaces aligned with components
 interface Transaction {
   id: string;
   user: string;
@@ -32,14 +35,7 @@ interface PlatformHealth {
 }
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [health, setHealth] = useState<PlatformHealth | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  const queryClient = useQueryClient();
 
   // Admin Token State
   const [adminToken, setAdminToken] = useState<string>('');
@@ -48,114 +44,79 @@ export default function Dashboard() {
   useEffect(() => {
     // Load token from localStorage if available
     const savedToken = localStorage.getItem('admin_token');
-    if (savedToken) setAdminToken(savedToken);
+    if (savedToken) {
+      setAdminToken(savedToken);
+      defaultApiClient.setToken(savedToken);
+    }
   }, []);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [adminToken]); // Refetch when token changes
 
   const handleTokenSave = () => {
     localStorage.setItem('admin_token', adminToken);
+    defaultApiClient.setToken(adminToken);
     setShowTokenInput(false);
-    fetchDashboardData();
+    // Invalidate all queries to force refetch with new token
+    queryClient.invalidateQueries();
   };
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    // Hardcoded fallback if env var is missing/blocked
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-
-    console.log(`Fetching dashboard data from ${apiBase}...`);
-
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    if (adminToken) {
-      headers['Authorization'] = `Bearer ${adminToken}`;
+  // Queries
+  const { data: statsData, isLoading: statsLoading } = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: async () => {
+      const res = await defaultApiClient.getAdminStats();
+      return res.data;
     }
+  });
 
-    try {
-      // Fetch platform stats (Parallel execution)
-      // 1. Admin Stats (Protected)
-      // 2. Recent Activity (Protected) 
-      // 3. Platform Health (Protected)
-      const [statsRes, activityRes, healthRes] = await Promise.all([
-        fetch(`${apiBase}/api/v1/analytics/admin/stats`, { headers }).catch(err => { console.error("Stats fetch error:", err); return null; }),
-        fetch(`${apiBase}/api/v1/analytics/admin/activity`, { headers }).catch(err => { console.error("Activity fetch error:", err); return null; }),
-        fetch(`${apiBase}/api/v1/analytics/admin/health`, { headers }).catch(err => { console.error("Health fetch error:", err); return null; }),
-      ]);
-
-      if (statsRes?.ok) {
-        const data = await statsRes.json();
-        // Map AdminStatsResponse to DashboardStats
-        setStats({
-          total_revenue: 0, // Not provided by admin/stats yet
-          active_users: data.total_users,
-          total_orders: data.total_orders,
-          energy_traded: data.total_volume_kwh,
-          revenue_change: '+0%', // Placeholder
-          users_change: '+0', // Placeholder
-          orders_change: '+0%', // Placeholder
-          energy_change: '+0%', // Placeholder
-        });
-      } else {
-        console.warn("Stats API failed:", statsRes?.status, statsRes?.statusText);
-      }
-
-      if (activityRes?.ok) {
-        const data = await activityRes.json();
-        // Map AuditEventRecord to Transaction
-        const mappedTransactions = data.slice(0, 5).map((log: any) => ({
-          id: log.id.substring(0, 8),
-          user: log.user_id ? log.user_id.substring(0, 8) : 'System',
-          type: log.action,
-          amount: '-', // Details in metadata usually
-          status: log.status,
-          time: new Date(log.created_at).toLocaleTimeString(),
-        }));
-        setTransactions(mappedTransactions);
-      } else {
-        console.warn("Activity API failed:", activityRes?.status);
-      }
-
-      if (healthRes?.ok) {
-        const data = await healthRes.json();
-        // Map DetailedHealthStatus to PlatformHealth
-        setHealth({
-          api_gateway: data.checks.database || 'offline', // Using DB as proxy for essential
-          blockchain_rpc: data.checks.blockchain || 'offline',
-          order_matching: 'running', // Assume running if API is up
-          settlement_queue: data.system.active_requests, // Proxy metric
-        });
-      } else {
-        console.warn("Health API failed:", healthRes?.status);
-      }
-
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-    } finally {
-      // Fallback data handling remains...
-      // (Kept simple for brevity, logic continues below to set defaults if null)
-      setLoading(false);
+  const { data: activityData, isLoading: activityLoading } = useQuery({
+    queryKey: ['admin-activity'],
+    queryFn: async () => {
+      const res = await defaultApiClient.getRecentActivity();
+      return res.data || [];
     }
+  });
+
+  const { data: healthData, isLoading: healthLoading } = useQuery({
+    queryKey: ['admin-health'],
+    queryFn: async () => {
+      const res = await defaultApiClient.getSystemHealth();
+      return res.data;
+    },
+    refetchInterval: 30000 // Refetch health every 30s
+  });
+
+  const loading = statsLoading || activityLoading || healthLoading;
+
+  // Transform Data
+  const stats: DashboardStats = {
+    total_revenue: statsData?.total_revenue || 0,
+    active_users: statsData?.total_users || 0,
+    total_orders: statsData?.total_orders || 0,
+    energy_traded: statsData?.total_volume_kwh || 0,
+    revenue_change: '+0%', // Placeholder from legacy code
+    users_change: '+0',
+    orders_change: '+0%',
+    energy_change: '+0%',
   };
 
-  const statusColors: Record<string, string> = {
-    completed: 'badge-success',
-    pending: 'badge-warning',
-    processing: 'badge-info',
-    failed: 'badge-danger',
+  const transactions: Transaction[] = (activityData || [])
+    .slice(0, 5)
+    .map((log: AuditEventRecord) => ({
+      id: log.id.substring(0, 8),
+      user: log.user_id ? log.user_id.substring(0, 8) : 'System',
+      type: log.action,
+      amount: '-', // Details in metadata usually
+      status: log.status,
+      time: new Date(log.created_at).toLocaleTimeString(),
+    }));
+
+  const health: PlatformHealth = {
+    api_gateway: healthData?.checks.database || 'offline',
+    blockchain_rpc: healthData?.checks.blockchain || 'offline',
+    order_matching: 'running', // Assume running if API is up
+    settlement_queue: healthData?.system.active_requests || 0,
   };
 
-  const healthColors: Record<string, string> = {
-    online: 'bg-[var(--success)]',
-    running: 'bg-[var(--success)]',
-    offline: 'bg-[var(--danger)]',
-    warning: 'bg-[var(--warning)]',
-  };
-
-  if (loading) {
+  if (loading && !statsData) {
     return (
       <div className="space-y-6 animate-fadeIn">
         <div>
@@ -206,7 +167,7 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <button onClick={fetchDashboardData} className="btn-secondary flex items-center gap-2">
+          <button onClick={() => queryClient.invalidateQueries()} className="btn-secondary flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
@@ -219,8 +180,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
           title="Total Revenue"
-          value={`฿${stats?.total_revenue?.toLocaleString() || '0'}`}
-          change={`${stats?.revenue_change || '+0%'} from last month`}
+          value={`฿${stats.total_revenue.toLocaleString()}`}
+          change={`${stats.revenue_change} from last month`}
           changeType="positive"
           subtitle="Platform fees + charges"
           icon={
@@ -231,8 +192,8 @@ export default function Dashboard() {
         />
         <StatCard
           title="Active Users"
-          value={stats?.active_users?.toLocaleString() || '0'}
-          change={`${stats?.users_change || '+0'} new this week`}
+          value={stats.active_users.toLocaleString()}
+          change={`${stats.users_change} new this week`}
           changeType="positive"
           subtitle="Registered accounts"
           icon={
@@ -243,8 +204,8 @@ export default function Dashboard() {
         />
         <StatCard
           title="Total Orders"
-          value={stats?.total_orders?.toLocaleString() || '0'}
-          change={`${stats?.orders_change || '+0%'} from yesterday`}
+          value={stats.total_orders.toLocaleString()}
+          change={`${stats.orders_change} from yesterday`}
           changeType="positive"
           subtitle="Buy & Sell orders"
           icon={
@@ -255,9 +216,9 @@ export default function Dashboard() {
         />
         <StatCard
           title="Energy Traded"
-          value={`${stats?.energy_traded || 0} MWh`}
-          change={`${stats?.energy_change || '-0%'} from last week`}
-          changeType={stats?.energy_change?.startsWith('-') ? 'negative' : 'positive'}
+          value={`${stats.energy_traded} MWh`}
+          change={`${stats.energy_change} from last week`}
+          changeType={stats.energy_change.startsWith('-') ? 'negative' : 'positive'}
           subtitle="Total volume"
           icon={
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -275,84 +236,11 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Stats */}
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Platform Health</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--card-hover)]">
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${healthColors[health?.api_gateway || 'online']} animate-pulse`}></div>
-                <span>API Gateway</span>
-              </div>
-              <span className="badge badge-success">{health?.api_gateway === 'online' ? 'Online' : health?.api_gateway}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--card-hover)]">
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${healthColors[health?.blockchain_rpc || 'online']} animate-pulse`}></div>
-                <span>Blockchain RPC</span>
-              </div>
-              <span className="badge badge-success">{health?.blockchain_rpc === 'online' ? 'Online' : health?.blockchain_rpc}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--card-hover)]">
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${healthColors[health?.order_matching || 'running']} animate-pulse`}></div>
-                <span>Order Matching</span>
-              </div>
-              <span className="badge badge-success">{health?.order_matching === 'running' ? 'Running' : health?.order_matching}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--card-hover)]">
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${(health?.settlement_queue || 0) > 0 ? 'bg-[var(--warning)]' : 'bg-[var(--success)]'}`}></div>
-                <span>Settlement Queue</span>
-              </div>
-              <span className={`badge ${(health?.settlement_queue || 0) > 0 ? 'badge-warning' : 'badge-success'}`}>
-                {health?.settlement_queue || 0} pending
-              </span>
-            </div>
-          </div>
-        </div>
+        <PlatformHealthCard health={health} />
       </div>
 
       {/* Recent Activity Table */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-semibold">Recent Activity</h3>
-            <p className="text-sm text-[var(--muted)]">Latest transactions and events</p>
-          </div>
-          <button className="btn-secondary text-sm">View All</button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Transaction ID</th>
-                <th>User</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.map((tx) => (
-                <tr key={tx.id}>
-                  <td className="font-mono text-sm">{tx.id}</td>
-                  <td className="font-mono text-sm text-[var(--muted)]">{tx.user}</td>
-                  <td>{tx.type}</td>
-                  <td className="font-medium">{tx.amount}</td>
-                  <td>
-                    <span className={`badge ${statusColors[tx.status]}`}>
-                      {tx.status}
-                    </span>
-                  </td>
-                  <td className="text-[var(--muted)]">{tx.time}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <RecentActivityTable transactions={transactions} />
     </div>
   );
 }

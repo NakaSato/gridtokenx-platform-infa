@@ -1,0 +1,91 @@
+@startuml
+!include <C4/C4_Container>
+!include <tupadr3/devicons/react>
+!include <tupadr3/devicons/python>
+!include <tupadr3/devicons/rust>
+!include <tupadr3/devicons/postgresql>
+!include <tupadr3/devicons/redis>
+!include <tupadr3/font-awesome-5/coins>
+!include <tupadr3/font-awesome-5/user>
+!include <tupadr3/font-awesome-5/server>
+!include <tupadr3/font-awesome-5/bolt>
+!include <tupadr3/devicons/linux>
+
+' Visual Configuration
+skinparam defaultFontName "Helvetica Neue"
+skinparam defaultFontSize 14
+skinparam roundCorner 8
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+
+' C4 Colors Overrides (Premium Palette)
+!define ELEMENT_FONT_COLOR #FFFFFF
+!define PERSON_BG_COLOR #2ECC71
+!define PERSON_BORDER_COLOR #27AE60
+!define SYSTEM_BG_COLOR #2C3E50
+!define SYSTEM_BORDER_COLOR #1A252F
+!define CONTAINER_BG_COLOR #3498DB
+!define CONTAINER_BORDER_COLOR #2980B9
+!define EXTERNAL_SYSTEM_BG_COLOR #95A5A6
+!define EXTERNAL_SYSTEM_BORDER_COLOR #7F8C8D
+
+' C4 Options
+SHOW_PERSON_OUTLINE()
+LAYOUT_WITH_LEGEND()
+
+title **GridTokenX - System Container Diagram**\nPlatform Architecture & Component Interactions
+
+Person(user, "User / Prosumer", "Energy producer/consumer managing smart meters and trading tokens.", $sprite="user")
+
+System_Boundary(platform, "GridTokenX Ecosystem") {
+    
+    System_Boundary(frontend_layer, "Frontend Layer") {
+        Container(trading_app, "Trading Dashboard", "Next.js, React", "Primary interface for trading, monitoring, and wallet management.", $sprite="react")
+        Container(admin_portal, "Admin Portal", "React", "Internal management for prosumer registry and grid monitoring.", $sprite="linux")
+    }
+
+    System_Boundary(backend_layer, "Service Layer") {
+        Container(gateway, "API Gateway", "Rust, Axum", "Central orchestration, high-performance API portal, and security.", $sprite="rust")
+        Container(simulator, "Smart Meter Sim", "Python, FastAPI", "Generates simulated real-time grid telemetry and production data.", $sprite="python")
+    }
+
+    System_Boundary(data_layer, "Persistence & Streaming") {
+        ContainerDb(db, "Primary DB", "PostgreSQL", "Relational storage for users, orders, and historical state.", $sprite="postgresql")
+        ContainerDb(cache, "Session & Cache", "Redis", "Real-time state, session management, and pub/sub events.", $sprite="redis")
+        ContainerQueue(kafka, "Event Stream", "Apache Kafka", "High-throughput ingestion for smart meter telemetry.", $sprite="server")
+        ContainerDb(influx, "Metrics DB", "InfluxDB", "Time-series storage for granular energy production analytics.", $sprite="bolt")
+    }
+    
+    System_Boundary(blockchain_layer, "Blockchain Layer") {
+        Container(blockchain, "Solana Network", "Anchor Framework", "On-chain state: Registry, Governance, and Energy Token (SPL).", $sprite="coins")
+    }
+}
+
+System_Ext(pyth, "Pyth Network", "Decentralized Oracle providing real-time energy price feeds.")
+System_Ext(mapbox, "Mapbox", "Geospatial service for grid topology and localized energy mapping.")
+
+' Interactions: Frontend
+Rel(user, trading_app, "Manages wallet & trades", "HTTPS / Wallet Standard")
+Rel(trading_app, gateway, "API Requests", "REST / WebSocket")
+Rel(trading_app, blockchain, "Signs & Submits Tx", "JSON RPC / WSS")
+Rel(trading_app, pyth, "Fetch Price Feed", "HTTPS")
+Rel(trading_app, mapbox, "Fetch Map Tiles", "HTTPS")
+
+' Interactions: Services
+Rel(gateway, db, "Query/Persist", "SQL")
+Rel(gateway, cache, "Cache Ops", "RESP")
+Rel(gateway, blockchain, "Oracle updates / State check", "JSON RPC")
+Rel(gateway, kafka, "Consumes readings", "Kafka Protocol")
+
+Rel(simulator, kafka, "Produces readings", "Kafka Protocol")
+Rel(simulator, influx, "Stores telemetry", "Line Protocol")
+Rel(simulator, db, "Persist config", "SQL")
+
+' Layout Hints
+Lay_D(frontend_layer, backend_layer)
+Lay_D(backend_layer, data_layer)
+Lay_D(data_layer, blockchain_layer)
+
+footer GridTokenX v2.0 | Architecture Overview | 2026
+
+@enduml

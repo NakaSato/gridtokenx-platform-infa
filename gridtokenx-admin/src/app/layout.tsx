@@ -2,6 +2,7 @@
 
 import { useState, ReactNode } from 'react';
 import { Sidebar, Header } from '@/components';
+import { QueryProvider } from '@/components/providers/QueryProvider';
 import './globals.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -16,15 +17,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
-        <div className="flex min-h-screen">
-          <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(false)} />
-          <div className="flex-1 flex flex-col">
-            <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
-            <main className="flex-1 p-6 overflow-auto">
-              {children}
-            </main>
+        <QueryProvider>
+          <div className="flex min-h-screen">
+            <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(false)} />
+            <div className="flex-1 flex flex-col">
+              <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+              <main className="flex-1 p-6 overflow-auto">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
+        </QueryProvider>
       </body>
     </html>
   );

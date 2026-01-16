@@ -33,62 +33,17 @@ $$\Delta E_{verified} = \int_{t_0}^{t_1} P(t) dt \text{ where } P(t) \in [P_{min
 ### A. The "Dual-State" Consistency Model
 This diagram explains why you use both PostgreSQL and Solana.
 
-```mermaid
-graph LR
-    subgraph "High-Speed Memory (Rust)"
-        PG[(PostgreSQL Cache)]
-        ME[Matching Engine]
-    end
-    subgraph "Finality Layer (Solana)"
-        BC{On-Chain State}
-        ESP[Escrow Program]
-    end
-
-    User(User) -->|Order| ME
-    ME -->|Write-through| PG
-    ME -->|Optimistic Lock| PG
-    ME -->|Atomic Trigger| ESP
-    ESP -.->|Consensus Finality| BC
-    BC -.->|Sync Worker| PG
-```
+![Dual-State Consistency](dual-state-consistency.png)
 
 ### B. Transaction Atomicity Sequence
 This is crucial for demonstrating security.
 
-```mermaid
-sequenceDiagram
-    participant Gateway as API Gateway (Rust)
-    participant Escrow as Escrow Program (BC)
-    participant Wallets as User Wallets (SPL)
-
-    Gateway->>Escrow: match_orders(buy_pda, sell_pda)
-    activate Escrow
-    Note over Escrow: Check signatures & balances
-    Escrow->>Wallets: Transfer GXT to Buyer
-    Escrow->>Wallets: Transfer USDC to Seller
-    Escrow->>Wallets: Pay Platform Fee
-    Note over Escrow: Transaction is Atomic
-    deactivate Escrow
-    Escrow-->>Gateway: Success (Finality)
-```
+![Transaction Atomicity](transaction-atomicity.png)
 
 ### C. The "Win-Win-Win" Cash Flow Model
 This diagram shows that everyone (Consumer, Prosumer, Utility) benefits from the transaction.
 
-```mermaid
-graph TD
-    Consumer["Consumer (Buyer)"] -- "Pays Landed Price" --> Escrow["Escrow Service"]
-    
-    subgraph "Revenue Distribution"
-        Escrow -- "Base Price - Platform Fee" --> Prosumer["Prosumer (Seller)"]
-        Escrow -- "Wheeling Charge" --> GridUtility["Grid Utility Provider"]
-        Escrow -- "Platform Fee" --> Platform["GridTokenX Platform"]
-        Escrow -- "Loss Compensation" --> LossSinking["Grid Loss Pool"]
-    end
-    
-    Prosumer -- "REC Sale (Optional)" --> Market["Secondary REC Market"]
-    Market -- "Premium Payout" --> Prosumer
-```
+![Cash Flow Model](cash-flow-model.png)
 
 ---
 

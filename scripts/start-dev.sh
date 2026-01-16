@@ -147,6 +147,19 @@ sleep 2
 echo -e "${GREEN}✅ Wallets funded${NC}"
 
 # ============================================================================
+# Step 5b: Initialize Blockchain Programs
+# ============================================================================
+echo ""
+echo -e "${YELLOW}📜 Initializing Blockchain Programs...${NC}"
+bash "$PROJECT_ROOT/scripts/init_blockchain.sh"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Failed to initialize blockchain code. Exiting.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✅ Blockchain programs deployed${NC}"
+
+
+# ============================================================================
 # Step 6: Create Energy Token (Standard SPL Token)
 # ============================================================================
 echo ""
@@ -191,6 +204,12 @@ update_env_file "$GATEWAY_DIR/.env" "AUTHORITY_WALLET_PATH" "dev-wallet.json"
 update_env_file "$PROJECT_ROOT/.env" "ENERGY_TOKEN_MINT" "$ENERGY_TOKEN_MINT"
 update_env_file "$PROJECT_ROOT/.env" "SOLANA_RPC_URL" "$RPC_URL"
 update_env_file "$PROJECT_ROOT/.env" "SOLANA_WS_URL" "$WS_URL"
+
+# Update trading frontend .env
+TRADING_ENV="$PROJECT_ROOT/gridtokenx-trading/.env"
+if [ -f "$TRADING_ENV" ]; then
+    update_env_file "$TRADING_ENV" "NEXT_PUBLIC_ENERGY_TOKEN_MINT" "$ENERGY_TOKEN_MINT"
+fi
 
 echo -e "${GREEN}✅ Environment configured${NC}"
 

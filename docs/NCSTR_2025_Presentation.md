@@ -1,4 +1,4 @@
-# NCSTR 2025: Comprehensive Presentation Content
+# NCSTR 2025 Presentation Content
 
 **Project Title (Thai):** การพัฒนาระบบจำลองการซื้อขายพลังงานแสงอาทิตย์แบบ Peer-to-Peer ด้วย Solana Smart Contract (Anchor Framework Permissioned Environments)
 **Project Title (English):** Development of a Peer-to-Peer Solar Energy Trading Simulator using Solana Smart Contract (Anchor Framework Permissioned Environments)
@@ -82,6 +82,25 @@
 - **Indicators**: Transaction Throughput (TPS) and End-to-End Latency.
 - **Testing Methodology**: Using custom Rust benchmark scripts to measure simulation performance vs. blockchain finality.
 - **Optimization**: Zero-copy accounts and account compression for IoT scale.
+
+---
+
+## Slide 9.5: Real-Time Grid Visualization (NEW)
+### Interactive Energy Grid Map
+- **Technology**: Mapbox GL + React Map GL with WebGL acceleration
+- **3D View**: Perspective camera with 60° pitch for depth perception
+
+### Animated Layers
+| Layer | Animation | Purpose |
+|-------|-----------|---------|
+| **Energy Flow** | Pulsing glow + moving dashes | Show power direction from transformer → meters |
+| **Trade Flow** | Cyan animated lines | Visualize P2P trades between zones |
+| **Zone Polygons** | Pulse when active | Highlight zones with ongoing trades |
+
+### Legend & Controls
+- Dynamic toggles: Flow Lines, Zones, Trades
+- Color-coded power levels (≥300 kW green → <100 kW red)
+- Real-time trade activity indicators
 
 ---
 

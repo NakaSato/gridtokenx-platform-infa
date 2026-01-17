@@ -215,61 +215,55 @@ echo -e "${GREEN}✅ Environment configured${NC}"
 
 
 # ============================================================================
-# Step 8: Start Application Services (Concurrently)
+# Step 8: Start Application Services (New Terminals)
 # ============================================================================
 echo ""
 echo -e "${YELLOW}🚀 Launching application services...${NC}"
 
 # Check for node_modules in frontend projects
 if [ ! -d "$PROJECT_ROOT/gridtokenx-admin/node_modules" ]; then
-    echo -e "${RED}Error: gridtokenx-admin/node_modules missing. Please run 'npm install' or 'bun install' in gridtokenx-admin.${NC}"
+    echo -e "${RED}Error: gridtokenx-admin/node_modules missing. Please run 'bun install' or 'bun install' in gridtokenx-admin.${NC}"
     exit 1
 fi
 if [ ! -d "$PROJECT_ROOT/gridtokenx-trading/node_modules" ]; then
-    echo -e "${RED}Error: gridtokenx-trading/node_modules missing. Please run 'npm install' or 'bun install' in gridtokenx-trading.${NC}"
+    echo -e "${RED}Error: gridtokenx-trading/node_modules missing. Please run 'bun install' or 'bun install' in gridtokenx-trading.${NC}"
     exit 1
 fi
 
-# Function to run command in new tab
-run_in_new_tab() {
+# Function to run command in new terminal window
+run_in_new_terminal() {
     local title="$1"
     local command="$2"
     local dir="$3"
     
     echo "  • Starting $title..."
-    # AppleScript to open new tab/window and run command
-    # We cd into the directory explicitly in the command
-    osascript -e "tell application \"Terminal\" 
-        do script \"cd $dir && $command\"
-    end tell" >/dev/null
+    # AppleScript to open new window and run command
+    osascript -e "tell application \"Terminal\" to do script \"cd $dir && $command\"" >/dev/null
 }
 
-# 1. API Gateway
-run_in_new_tab "API Gateway" "cargo run --release --bin api-gateway" "$GATEWAY_DIR"
+# 1. API Gateway (Debug build for speed)
+run_in_new_terminal "API Gateway" "cargo run --bin api-gateway" "$GATEWAY_DIR"
 
 # 2. Smart Meter Simulator (Frontend)
-run_in_new_tab "Simulator UI" "npm run dev" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
+run_in_new_terminal "Simulator UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
 
 # 3. Smart Meter Simulator (Python API)
-run_in_new_tab "Simulator API" "source .venv/bin/activate && export PYTHONPATH=\$PYTHONPATH:. && python -m uvicorn src.app.main:app --reload --host 0.0.0.0 --port 8000" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
+run_in_new_terminal "Simulator API" "source .venv/bin/activate && export PYTHONPATH=\$PYTHONPATH:. && python -m uvicorn src.app.main:app --reload --host 0.0.0.0 --port 8000" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
 
 # 4. Trading UI
-run_in_new_tab "Trading UI" "npm run dev" "$PROJECT_ROOT/gridtokenx-trading"
+run_in_new_terminal "Trading UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-trading"
 
 # 5. Admin UI
-run_in_new_tab "Admin UI" "npm run dev" "$PROJECT_ROOT/gridtokenx-admin"
+run_in_new_terminal "Admin UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-admin"
 
 # 6. Tail Validator Logs
-run_in_new_tab "Validator Logs" "tail -f $PROJECT_ROOT/scripts/logs/validator.log" "$PROJECT_ROOT"
+run_in_new_terminal "Validator Logs" "tail -f $PROJECT_ROOT/scripts/logs/validator.log" "$PROJECT_ROOT"
 
 echo ""
 echo -e "${YELLOW}NOTE: Services are running in separate Terminal windows.${NC}"
 echo -e "${YELLOW}To stop them, you can close the windows or run ./scripts/stop-dev.sh${NC}"
 
-# We don't trap EXIT anymore because we want the validator to keep running in background 
-# (although stop-dev.sh is preferred for cleanup)
-# But wait, if this script exits, the background validator might die if not disowned.
-# Let's disown the validator process so it survives script exit.
+# Disown validator so it stays running if we exit
 disown $VALIDATOR_PID
 echo ""
 echo -e "${GREEN}✅ Development environment launched!${NC}"

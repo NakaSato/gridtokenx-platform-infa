@@ -30,7 +30,7 @@ echo -e "${GREEN}1. Building Anchor Programs...${NC}"
 cd "$ANCHOR_DIR"
 # We skip the "Deploying" part of anchor build if validator isn't running perfectly, 
 # but "anchor build" generates the .so files we need.
-anchor build --verifiable
+anchor build
 
 # 2. Check Validator Status
 echo -e "${GREEN}2. Checking Local Validator...${NC}"

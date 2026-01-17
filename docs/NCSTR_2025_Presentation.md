@@ -104,6 +104,28 @@
 
 ---
 
+## Slide 9.6: Carbon Credits & Smart Simulation (NEW)
+
+### On-Chain Carbon Credit Transfer
+- **Instruction**: `transfer_carbon_credits(amount)` 
+- **Token**: REC (Renewable Energy Certificate) SPL Token
+- **Use Case**: Trade verified green energy credits between users
+- **Event**: `CarbonCreditTransferred { sender, receiver, amount }`
+
+### Weather-Based Solar Generation
+- **Algorithm**: Gaussian irradiance curve centered at solar noon
+- **Parameters**: Time of day, cloud cover (0-100%), system losses
+- **Formula**: `output = capacity × time_factor × weather_factor × efficiency`
+
+| Factor | Value |
+|--------|-------|
+| Peak hour | 12:00 (100%) |
+| Cloud cover impact | 0-80% reduction |
+| Thai temp derating | 5% loss |
+| System efficiency | 85% |
+
+---
+
 ## Slide 10: Project Timeline
 - **Stage 1 (Current - Dec 2025)**: Architecture design and initial PoC (50% Completion).
 - **Stage 2 (Dec - April 2026)**: Full integration of matching engine and AMI (75% Completion).

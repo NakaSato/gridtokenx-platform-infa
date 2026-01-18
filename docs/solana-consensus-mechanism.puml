@@ -1,0 +1,50 @@
+@startuml solana-consensus-mechanism
+!include <C4/C4_Component>
+
+skinparam defaultFontName "Helvetica Neue"
+title **Solana Consensus Mechanism**\nProof of History (PoH) & Tower BFT
+
+' -- NODES --
+
+System_Ext(cluster, "Solana Cluster", "Network of Validators")
+
+System_Boundary(leader, "Leader Node (Slot N)") {
+    Component(poh_recorder, "PoH Recorder", "SHA-256 (VDF)", "Generates Ticks (Time Passage)")
+    Component(entry_gen, "Entry Generator", "Rust", "Mixes Txs into PoH Stream")
+}
+
+System_Boundary(validator, "Validator Node (Voter)") {
+    Component(sig_verify, "PoH Verifier", "GPU/CUDA", "Verifies Hashing Sequence")
+    Component(tower_bft, "Tower BFT", "Consensus Algorithm", "Manages Vote Lockouts")
+    Component(bank_forks, "Bank Forks", "State", "Tracks Fork Candidates")
+}
+
+System_Boundary(on_chain, "On-Chain State") {
+    ComponentDb(vote_account, "Vote Account", "PDA", "Stores Validator Votes")
+    ComponentDb(root_bank, "Root Bank", "Finalized State", "Immutable History (32+ Conf)")
+}
+
+' -- FLOW --
+
+' 1. PoH Generation
+Rel(poh_recorder, poh_recorder, "1. Recursive Hash (Tick)", "SHA-256")
+Rel(entry_gen, poh_recorder, "2. Mix Transaction", "Hash")
+Rel(poh_recorder, cluster, "3. Broadcast Shreds", "Turbine")
+
+' 2. Verification
+Rel(cluster, sig_verify, "4. Receive Entry", "Turbine")
+Rel(sig_verify, bank_forks, "5. Replay Block", "Bank")
+
+' 3. Voting (Tower BFT)
+Rel(bank_forks, tower_bft, "6. Select Fork", "Greedy Choice")
+Rel(tower_bft, vote_account, "7. Submit Vote Transaction", "Lockout Increase")
+
+' 4. Finality
+Rel(vote_account, cluster, "8. Propagate Vote", "Gossip")
+Rel(tower_bft, root_bank, "9. Finalize (Root)", "2/3+ Stake")
+
+' Layout
+Lay_R(leader, validator)
+Lay_D(validator, on_chain)
+
+@enduml

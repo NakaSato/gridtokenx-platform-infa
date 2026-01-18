@@ -5,13 +5,6 @@
 !include <tupadr3/font-awesome-5/server>
 !include <tupadr3/font-awesome-5/bolt>
 
-' Visual Configuration
-skinparam defaultFontName "Helvetica Neue"
-skinparam defaultFontSize 14
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam backgroundColor #FFFFFF
-
 title **Data & Simulator Layer - telemetry & Persistence**
 
 Container(simulator, "Smart Meter Sim", "Python / FastAPI", "Generates high-fidelity simulated grid telemetry and prosumer data.", $sprite="python")

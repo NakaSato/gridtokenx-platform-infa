@@ -1,0 +1,45 @@
+@startuml
+!include <C4/C4_Component>
+!include <tupadr3/font-awesome-5/coins>
+!include <tupadr3/font-awesome-5/key>
+!include <tupadr3/font-awesome-5/file_contract>
+!include <tupadr3/font-awesome-5/memory>
+
+skinparam defaultFontName "Helvetica Neue"
+
+title **GridTokenX - Component Diagram: Anchor Programs**\nOn-Chain Logic & State Management
+
+Container(anchor_program, "GridTokenX Program", "Rust / Anchor", "The monolithic smart contract enforcing platform rules.", $sprite="file_contract")
+
+System_Boundary(program_internals, "Program Modules (Instructions)") {
+    Component(ctx_registry, "Registry Module", "Context<Registry>", "Handles prosumer registration and KYC whitelisting.")
+    Component(ctx_minting, "Minting Module", "Context<MintEnergy>", "Validates oracle data and issues Energy Tokens (GXT).")
+    Component(ctx_trading, "Trading Module", "Context<PlaceOrder/Settle>", "Manages order book interactions and escrow locking.")
+    Component(ctx_gov, "Governance Module", "Context<Vote>", "Dao voting and parameter updates.")
+}
+
+System_Boundary(pda_state, "Program Derived Addresses (State)") {
+    ComponentDb(acc_market, "Market State", "Account<Market>", "Stores global config, fees, and paused status.", $sprite="memory")
+    ComponentDb(acc_registry, "Prosumer Record", "Account<Prosumer>", "Mapping of user wallets to device IDs.", $sprite="memory")
+    ComponentDb(acc_escrow, "Escrow Vault", "TokenAccount (PDA)", "Holds funds/tokens during active orders.", $sprite="coins")
+}
+
+' External Dependencies
+System_Ext(system_program, "System Program", "Solana Native", "Account creation and SOL transfers.")
+System_Ext(spl_token, "SPL Token Program", "Token-2022", "Minting, burning, and transferring tokens.", $sprite="key")
+
+' Internal Logic Flows
+Rel(ctx_registry, acc_registry, "Initialize/Update Account", "One-time Write")
+Rel(ctx_trading, acc_market, "Read Config", "Read-only")
+Rel(ctx_trading, acc_escrow, "Lock/Unlock Funds", "CPI Transfer")
+Rel(ctx_minting, spl_token, "MintTo", "CPI (Signed by PDA)")
+
+' CPI Calls
+Rel(ctx_trading, spl_token, "Transfer Checked", "CPI")
+Rel(ctx_registry, system_program, "Create Account", "CPI")
+
+' Layout Hints
+Lay_R(program_internals, pda_state)
+Lay_D(program_internals, spl_token)
+
+@enduml

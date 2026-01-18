@@ -1,0 +1,47 @@
+@startuml
+!include <C4/C4_Component>
+!include <tupadr3/font-awesome-5/coins>
+!include <tupadr3/font-awesome-5/store>
+!include <tupadr3/font-awesome-5/list>
+
+skinparam defaultFontName "Helvetica Neue"
+
+title **Anchor Component: Trading Program**\nP2P Market & Escrow Logic
+
+Container(trading, "Trading Module", "Anchor Program", "Executes order matching and atomic settlement.", $sprite="store")
+
+System_Boundary(logic, "Instructions (Commands)") {
+    Component(ix_init, "initialize_market", "Context<InitializeMarket>", "Sets up order book and fee structure.")
+    Component(ix_sell, "create_sell_order", "Context<CreateSellOrder>", "Lists energy for sale.")
+    Component(ix_buy, "create_buy_order", "Context<CreateBuyOrder>", "Places a bid for energy.")
+    Component(ix_match, "match_orders", "Context<MatchOrders>", "Matches active buy/sell orders.")
+    Component(ix_settle, "execute_atomic_settlement", "Context<AtomicSettlement>", "Transfers Energy/USD via CPI.")
+}
+
+System_Boundary(state, "Program State (PDAs)") {
+    ComponentDb(acc_market, "Market State", "Account<Market>", "Global order book stats & depth.")
+    ComponentDb(acc_order, "Order Account", "Account<Order>", "Individual order details (price/qty).", $sprite="list")
+    ComponentDb(acc_history, "Trade History", "Account<TradeRecord>", "Immutable log of matches.")
+}
+
+' External
+System_Ext(spl, "SPL Token Program", "Token-2022", "Mint/Transfer")
+System_Ext(gateway, "API Gateway", "Signer", "Orchestrator")
+
+' Relationships
+Rel(gateway, ix_sell, "Submit Order", "RPC")
+Rel(gateway, ix_match, "Trigger Match", "RPC")
+
+Rel(ix_sell, acc_market, "Update Depth", "Write")
+Rel(ix_sell, acc_order, "Create Order", "Write")
+
+Rel(ix_match, acc_order, "Update Filled Qty", "Write")
+Rel(ix_match, acc_history, "Log Trade", "Write")
+
+Rel(ix_settle, spl, "Transfer Funds (CPI)", "CPI Call")
+Rel(ix_settle, acc_order, "Close Order", "Write")
+
+' Layout
+Lay_R(logic, state)
+
+@enduml

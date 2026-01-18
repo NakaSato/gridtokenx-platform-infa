@@ -1,0 +1,52 @@
+@startuml protocol-solana-gateway
+!include <C4/C4_Container>
+
+skinparam defaultFontName "Helvetica Neue"
+title **Protocol Focus: API Gateway ↔ Solana L1**\nJSON-RPC & WebSocket Interaction Patterns
+
+' -- NODES --
+
+Container(gateway, "API Gateway", "Rust / Axum", "Backend Service")
+
+System_Boundary(solana, "Solana Blockchain (Layer 1)") {
+    Container(rpc, "RPC Node", "Solana Validator", "JSON-RPC Endpoint (Port 8899/8900)")
+    
+    System_Boundary(runtime, "Sealevel Runtime") {
+        Container(prog_registry, "Registry Program", "Anchor", "Identity & Meter Mgmt")
+        Container(prog_trading, "Trading Program", "Anchor", "Order Book & Matching")
+        Container(prog_token, "Energy Token", "Anchor", "Minting Logic")
+        Container(prog_gov, "Governance", "Anchor", "DAO Config")
+        Container(prog_oracle, "Oracle", "Anchor", "Data Validation")
+        
+        ContainerDb(accounts, "Account State", "PDA storage", "Persistent Data")
+    }
+}
+
+' -- PROTOCOLS & METHODS --
+
+' 1. Transaction Submission (Write)
+Rel(gateway, rpc, "1. sendTransaction(tx_base64)", "JSON-RPC (HTTPS POST)")
+
+Rel_R(rpc, prog_registry, "Register User/Meter", "Native Runtime")
+Rel_R(rpc, prog_trading, "Place/Match Orders", "Native Runtime")
+Rel_R(rpc, prog_oracle, "Submit Reading", "Native Runtime")
+
+Rel_D(prog_registry, accounts, "Write", "PDA")
+Rel_D(prog_trading, accounts, "Write", "PDA")
+Rel_D(prog_oracle, accounts, "Write", "PDA")
+
+' 2. State Fetching (Read)
+Rel(gateway, rpc, "2. getAccountInfo(pubkey)", "JSON-RPC (HTTPS POST)")
+Rel_L(accounts, rpc, "Return Base64 Data", "Read")
+Rel(rpc, gateway, "AccountInfo Response", "JSON")
+
+' 3. Event Streaming (WebSocket)
+Rel(gateway, rpc, "3. logsSubscribe(filter)", "WSS (WebSocket)")
+Rel_U(prog_trading, rpc, "Emit TradeEvent", "Context")
+Rel_U(prog_oracle, rpc, "Emit ReadingEvent", "Context")
+Rel(rpc, gateway, "Notification(signature, err)", "WSS Stream")
+
+' Layout
+Lay_R(gateway, solana)
+
+@enduml

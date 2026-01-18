@@ -1,0 +1,48 @@
+@startuml
+!include <C4/C4_Component>
+!include <tupadr3/font-awesome-5/user>
+!include <tupadr3/font-awesome-5/tachometer_alt>
+!include <tupadr3/font-awesome-5/key>
+
+skinparam defaultFontName "Helvetica Neue"
+
+title **Anchor Component: Registry Program**\nIdentity & Asset Management
+
+Container(registry, "Registry Module", "Anchor Program", "Manages user identities and smart meter registry.", $sprite="key")
+
+System_Boundary(logic, "Instructions (Commands)") {
+    Component(ix_init, "initialize", "Context<Initialize>", "Sets up global registry authority.")
+    Component(ix_reg_user, "register_user", "Context<RegisterUser>", "Whitelists a new prosumer/consumer wallet.")
+    Component(ix_reg_meter, "register_meter", "Context<RegisterMeter>", "Links a smart meter ID to a user.")
+    Component(ix_update_reading, "update_meter_reading", "Context<UpdateMeterReading>", "Oracle updates energy generation stats.")
+    Component(ix_settle, "settle_meter_balance", "Context<SettleMeterBalance>", "Calculates net generation for minting.")
+}
+
+System_Boundary(state, "Program State (PDAs)") {
+    ComponentDb(acc_registry, "Registry Global", "Account<Registry>", "Stores admin authority and total counts.")
+    ComponentDb(acc_user, "User Account", "Account<UserAccount>", "Seeds: ['user', authority_key]", $sprite="user")
+    ComponentDb(acc_meter, "Meter Account", "Account<MeterAccount>", "Seeds: ['meter', owner_key, meter_id]", $sprite="tachometer_alt")
+}
+
+' External
+System_Ext(oracle, "Oracle Authority", "Signer", "Authorized entity to push readings.")
+System_Ext(user_wallet, "User Wallet", "Signer", "Prosumer initiating actions.")
+
+' Relationships
+Rel(user_wallet, ix_reg_user, "Sign & Send", "RPC")
+Rel(user_wallet, ix_reg_meter, "Sign & Send", "RPC")
+Rel(oracle, ix_update_reading, "Push Telemetry", "Keypair Sign")
+
+Rel(ix_reg_user, acc_registry, "Increment Count", "Write")
+Rel(ix_reg_user, acc_user, "Initialize PDA", "Write")
+
+Rel(ix_reg_meter, acc_user, "Link Meter", "Write")
+Rel(ix_reg_meter, acc_meter, "Initialize PDA", "Write")
+
+Rel(ix_update_reading, acc_meter, "Update Stats", "Write")
+Rel(ix_settle, acc_meter, "Read & Reset", "Read/Write")
+
+' Layout
+Lay_R(logic, state)
+
+@enduml

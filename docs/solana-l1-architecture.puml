@@ -1,0 +1,57 @@
+@startuml solana-l1-architecture
+!include <C4/C4_Component>
+
+skinparam defaultFontName "Helvetica Neue"
+title **Solana L1 Architecture**\nValidator Anatomy and Data Flow
+
+' -- NODES --
+
+System_Ext(client, "RPC / Client", "Submits signed transactions")
+System_Ext(cluster, "Solana Cluster", "Turbine / Gossip Network")
+
+System_Boundary(validator, "Solana Validator Node") {
+    
+    Container_Boundary(tpu_group, "TPU (Leader - Write Path)") {
+        Component(tpu_sig, "SigVerify Stage", "GPU/CUDA", "Verifies Ed25519 Signatures")
+        Component(tpu_bank, "Banking Stage", "Scheduler", "Process Txs and Update State")
+        Component(tpu_poh, "PoH Service", "SHA-256 Hashing", "Timestamping and Ordering")
+        Component(tpu_broad, "Broadcast Stage", "Turbine", "Shreds Blocks and Propagates")
+    }
+
+    Container_Boundary(tvu_group, "TVU (Validator - Read Path)") {
+        Component(tvu_fetch, "Fetch Stage", "Turbine", "Receives Shreds from Leader")
+        Component(tvu_replay, "Replay Stage", "Sealevel", "Executes Txs and Validates")
+    }
+
+    Component(gossip, "Gossip Service", "Control Plane", "Cluster Metadata and CRDT")
+    ComponentDb(blockstore, "Blockstore", "RocksDB / Ledger", "Stores Shreds (History)")
+    ComponentDb(accounts_db, "AccountsDB", "SSD", "Current Account State")
+
+}
+
+' -- FLOW --
+
+' Write Path (Leader)
+Rel(client, tpu_sig, "1. Send Transaction", "UDP")
+Rel(tpu_sig, tpu_bank, "2. Valid Packets", "Channel")
+Rel(tpu_bank, tpu_poh, "3. Record Entry", "PoH Stream")
+Rel(tpu_bank, accounts_db, "3a. Read/Write State", "R/W")
+Rel(tpu_poh, tpu_broad, "4. Create Shreds", "Stream")
+Rel(tpu_broad, cluster, "5. Broadcast Shreds", "Turbine")
+
+' Read Path (Validator)
+Rel(cluster, tvu_fetch, "6. Receive Shreds", "Turbine")
+Rel(tvu_fetch, blockstore, "7. Write Ledger", "Shreds")
+Rel(blockstore, tvu_replay, "8. Replay Blocks", "Entries")
+Rel(tvu_replay, accounts_db, "9. Update State", "Write")
+Rel(tvu_replay, gossip, "10. Vote", "Gossip")
+
+' Network
+Rel(gossip, cluster, "Sync Metadata", "Gossip Protocol")
+
+' Layout
+Lay_R(tpu_group, tvu_group)
+Lay_D(tpu_group, blockstore)
+Lay_D(tvu_group, blockstore)
+
+@enduml

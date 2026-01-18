@@ -1,0 +1,55 @@
+@startuml
+!include <C4/C4_Component>
+!include <tupadr3/font-awesome-5/gavel>
+!include <tupadr3/font-awesome-5/file_signature>
+!include <tupadr3/font-awesome-5/shield_alt>
+
+skinparam defaultFontName "Helvetica Neue"
+
+title **Anchor Component: Governance Program**\nDAO & REC Management
+
+Container(governance, "Governance Module", "Anchor Program", "Manages platform configuration, authority, and Energy Certificates (ERCs).", $sprite="gavel")
+
+System_Boundary(logic, "Instructions (Commands)") {
+    Component(ix_init, "initialize_poa", "Context<InitializePoa>", "Sets up initial PoA configuration.")
+    Component(ix_emergency, "emergency_pause/unpause", "Context<EmergencyControl>", "Freezes/Unfreezes platform operations relative to PoA.")
+    
+    Component(ix_issue_erc, "issue_erc", "Context<IssueErc>", "Mints a new Renewable Energy Certificate.")
+    Component(ix_validate_erc, "validate_erc_for_trading", "Context<ValidateErc>", "Approves an ERC for active market trading.")
+    Component(ix_revoke_erc, "revoke_erc", "Context<RevokeErc>", "Invalidates a certificate (fraud/error).")
+    
+    Component(ix_config, "update_governance_config", "Context<UpdateConfig>", "Updates ERC limits and maintenance mode.")
+    Component(ix_auth_change, "propose/approve_authority", "Context<AuthChange>", "Multi-step authority transfer.")
+}
+
+System_Boundary(state, "Program State (PDAs)") {
+    ComponentDb(acc_config, "PoA Config", "Account<PoAConfig>", "Global settings, authority, and authorized oracles.", $sprite="shield_alt")
+    ComponentDb(acc_erc, "ERC Certificate", "Account<ErcCertificate>", "Seeds: ['erc_certificate', id]\nStores energy source, amount, and validity.", $sprite="file_signature")
+}
+
+' External
+System_Ext(admin, "Governance Authority", "Signer", "DAO or Multi-sig Wallet.")
+System_Ext(oracle, "Oracle", "Signer", "Validates generation for issuance.")
+
+' Relationships
+Rel(admin, ix_init, "Initialize", "RPC")
+Rel(admin, ix_emergency, "Emergency Stop", "RPC")
+Rel(admin, ix_config, "Update Settings", "RPC")
+Rel(admin, ix_auth_change, "Rotate Key", "RPC")
+
+Rel(admin, ix_issue_erc, "Issue Cert", "RPC")
+Rel(admin, ix_validate_erc, "Approve Cert", "RPC")
+Rel(admin, ix_revoke_erc, "Revoke", "RPC")
+
+Rel(ix_init, acc_config, "Create", "Write")
+Rel(ix_config, acc_config, "Update", "Write")
+Rel(ix_emergency, acc_config, "Set Paused", "Write")
+
+Rel(ix_issue_erc, acc_erc, "Mint PDA", "Write")
+Rel(ix_validate_erc, acc_erc, "Set Status", "Write")
+Rel(ix_revoke_erc, acc_erc, "Set Invalid", "Write")
+
+' Layout
+Lay_R(logic, state)
+
+@enduml

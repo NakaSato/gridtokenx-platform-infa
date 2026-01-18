@@ -6,16 +6,7 @@
 !include <tupadr3/font-awesome-5/project_diagram>
 !include <tupadr3/font-awesome-5/broadcast_tower>
 
-' Visual Configuration
-skinparam defaultFontName "Helvetica Neue"
-skinparam defaultFontSize 14
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam backgroundColor #FFFFFF
 
-' Color Palette
-!define ACCENT_COLOR #673AB7
-!define TEXT_COLOR #2C3E50
 
 title **Blockchain Layer - Decentralized Infrastructure**\nProgram Interoperability & State Management Flow
 
@@ -58,14 +49,14 @@ Rel_L(trading, spl_token, "Transfer Energy/USDC", "Atomic CPI")
 Rel_Neighbor(registry, trading, " ", " ") #hidden
 
 ' Key Technical Notes
-note top of registry #F3E5F5
+note top of registry
   **PDAs (Program Derived Addresses):**
   Uses deterministic seeds to link 
   Database IDs to Blockchain accounts 
   without storing private keys.
 end note
 
-note top of trading #E1F5FE
+note top of trading
   **Trustless Escrow:**
   Funds are held by the program 
   authority until specific market 

@@ -5,12 +5,7 @@
 !include <tupadr3/font-awesome-5/university>
 !include <tupadr3/font-awesome-5/solar_panel>
 
-' Visual Configuration
-skinparam defaultFontName "Helvetica Neue"
-skinparam defaultFontSize 14
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam backgroundColor #FFFFFF
+
 
 title **"Win-Win-Win" Cash Flow & Value Distribution**\nSocio-Economic Model of the GridTokenX Platform
 
@@ -42,7 +37,7 @@ Rel_Neighbor(prosumer, market, "REC Sale (Optional)", "Secondary REC Market")
 Rel_Back(prosumer, market, "Premium Payout", "Incentive Credit")
 
 ' Summary Note
-note top of escrow #E1F5FE
+note top of escrow
   **Transparency:**
   Every cent is trackable 
   on the block explorer. 

@@ -11,12 +11,7 @@
 !include <tupadr3/font-awesome-5/bolt>
 !include <tupadr3/font-awesome-5/envelope>
 
-' Visual Configuration
-skinparam defaultFontName "Helvetica Neue"
-skinparam defaultFontSize 12
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam backgroundColor #FFFFFF
+
 
 title **GridTokenX Comprehensive Architecture & Protocols**
 

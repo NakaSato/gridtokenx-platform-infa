@@ -267,3 +267,14 @@ echo -e "${YELLOW}To stop them, you can close the windows or run ./scripts/stop-
 disown $VALIDATOR_PID
 echo ""
 echo -e "${GREEN}✅ Development environment launched!${NC}"
+echo ""
+echo -e "${BLUE}📡 Service Endpoints:${NC}"
+echo -e "  • Solana RPC:      ${CYAN}http://localhost:8899${NC}"
+echo -e "  • API Gateway:     ${CYAN}http://localhost:4000${NC}"
+echo -e "  • Simulator API:   ${CYAN}http://localhost:8000${NC}"
+echo -e "  • Simulator UI:    ${CYAN}http://localhost:8080${NC} (or similar, check terminal)"
+echo -e "  • Trading UI:      ${CYAN}http://localhost:3000${NC}"
+echo -e "  • Admin UI:        ${CYAN}http://localhost:3001${NC} (or similar, check terminal)"
+echo ""
+echo -e "${YELLOW}👉 Check the opened Terminal windows for logs and actual frontend ports if different.${NC}"
+

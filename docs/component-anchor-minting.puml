@@ -1,0 +1,39 @@
+@startuml
+!include <C4/C4_Component>
+!include <tupadr3/font-awesome-5/leaf>
+!include <tupadr3/font-awesome-5/certificate>
+!include <tupadr3/font-awesome-5/check_circle>
+
+skinparam defaultFontName "Helvetica Neue"
+
+title **Anchor Component: Energy Token (Minting)**\nTokenization & REC Validator
+
+Container(minting, "Energy Token Module", "Anchor Program", "Issues Grid Tokens based on settled generation.", $sprite="leaf")
+
+System_Boundary(logic, "Instructions (Commands)") {
+    Component(ix_init, "initialize_token", "Context<InitializeToken>", "Sets up mint authority PDA.")
+    Component(ix_mint, "mint_tokens_direct", "Context<MintTo>", "Issues tokens to user wallet.")
+    Component(ix_add_valid, "add_rec_validator", "Context<AddValidator>", "Authorize external verifiers.")
+}
+
+System_Boundary(state, "Program State (PDAs)") {
+    ComponentDb(acc_info, "Token Info", "Account<TokenInfo>", "Stores total supply & validators list.")
+    ComponentDb(acc_mint, "Mint Account", "Account<Mint>", "SPL Token Mint Definition.", $sprite="certificate")
+}
+
+' External
+Container(registry, "Registry Program", "Anchor", "Source of 'Settled' events.")
+System_Ext(spl, "SPL Token Program", "Token-2022", "Standard Token Logic")
+
+' Relationships
+Rel(registry, ix_mint, "Triggers Minting", "CPI / Orchestration")
+
+Rel(ix_mint, acc_info, "Read Authority", "Read")
+Rel(ix_mint, spl, "Mint To User", "CPI")
+
+Rel(ix_add_valid, acc_info, "Add Pubkey", "Write")
+
+' Layout
+Lay_R(logic, state)
+
+@enduml

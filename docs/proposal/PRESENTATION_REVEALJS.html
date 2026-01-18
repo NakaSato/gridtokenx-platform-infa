@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GridTokenX - NCSTR 2025</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+    <style>
+        :root {
+            --r-background-color: #1a1a2e;
+            --r-main-font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --r-heading-font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --r-main-color: #eaeaea;
+            --r-heading-color: #00d4ff;
+            --r-link-color: #00d4ff;
+            --r-selection-background-color: #00d4ff;
+        }
+        .reveal h1, .reveal h2, .reveal h3 {
+            text-transform: none;
+        }
+        .reveal h1 { font-size: 2.2em; }
+        .reveal h2 { font-size: 1.6em; }
+        .reveal h3 { font-size: 1.3em; color: #ffd700; }
+        .reveal ul { text-align: left; }
+        .reveal li { margin: 0.5em 0; }
+        .reveal .slides section { padding: 20px; }
+        .highlight { color: #00d4ff; font-weight: bold; }
+        .highlight-yellow { color: #ffd700; }
+        .highlight-green { color: #00ff88; }
+        .two-column { display: flex; gap: 40px; }
+        .two-column > div { flex: 1; }
+        .diagram-container { text-align: center; margin: 20px 0; }
+        .diagram-container img { max-height: 400px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,212,255,0.3); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; border: 1px solid #444; text-align: center; }
+        th { background: linear-gradient(135deg, #0f3460, #16213e); color: #00d4ff; }
+        td { background: rgba(255,255,255,0.05); }
+        .emoji { font-size: 1.2em; }
+        .footer { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); font-size: 0.6em; color: #888; }
+        .title-slide h1 { font-size: 2.8em; background: linear-gradient(135deg, #00d4ff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .feature-box { background: rgba(0,212,255,0.1); border-left: 4px solid #00d4ff; padding: 15px; margin: 10px 0; border-radius: 0 8px 8px 0; }
+        .metric-card { background: linear-gradient(135deg, #0f3460, #16213e); padding: 20px; border-radius: 12px; margin: 10px; text-align: center; }
+        .metric-card .value { font-size: 2em; color: #00ff88; font-weight: bold; }
+        .metric-card .label { font-size: 0.9em; color: #aaa; }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Title Slide -->
+            <section class="title-slide" data-background-gradient="linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)">
+                <h1>GridTokenX</h1>
+                <h2>Development of a P2P Solar Energy Trading Simulation System using Solana Smart Contracts</h2>
+                <h3>(Anchor Framework in Permissioned Environment)</h3>
+                <p style="margin-top: 40px;">
+                    <strong>Author:</strong> Mr. Chanthawat Kiriyadee (2410717302003)<br>
+                    <strong>Advisor:</strong> Dr. Suwannee Adsavakulchai
+                </p>
+                <p style="font-size: 0.8em; color: #888;">NCSTR 2025</p>
+            </section>
+
+            <!-- Agenda -->
+            <section data-auto-animate>
+                <h2>📋 Agenda</h2>
+                <ol>
+                    <li class="fragment"><strong>Problem & Solution</strong> <span style="color:#888">(The "Why" and "What")</span></li>
+                    <li class="fragment"><strong>Core Architecture</strong> <span style="color:#888">(The "How It Works")</span></li>
+                    <li class="fragment"><strong>Innovations</strong> <span style="color:#888">(Consensus & Speed)</span></li>
+                    <li class="fragment"><strong>System Workflow</strong> <span style="color:#888">(Step-by-Step Demo)</span></li>
+                    <li class="fragment"><strong>Economic Model</strong> <span style="color:#888">(Sustainability)</span></li>
+                    <li class="fragment"><strong>Simulation & Visualization</strong> <span style="color:#888">(Frontend)</span></li>
+                    <li class="fragment"><strong>Results & Timeline</strong> <span style="color:#888">(Validation)</span></li>
+                </ol>
+            </section>
+
+            <!-- Problem Statement -->
+            <section>
+                <section data-auto-animate>
+                    <h2>1. Problem Statement</h2>
+                    <h3>The Shift to Prosumers</h3>
+                    <p>Energy <span class="highlight">consumers</span> are becoming <span class="highlight-green">producers</span> (Solar Rooftops)</p>
+                    <div class="fragment" style="font-size: 3em; margin: 30px 0;">
+                        🏠 → ☀️ → 💰
+                    </div>
+                </section>
+                <section data-auto-animate>
+                    <h2>1. Problem Statement</h2>
+                    <h3>The "Trilemma" in Energy Blockchain</h3>
+                    <div class="feature-box fragment">
+                        <strong>1. Scalability:</strong> Cannot handle frequent micro-transactions (smart meter checks every 15 mins)
+                    </div>
+                    <div class="feature-box fragment">
+                        <strong>2. Cost:</strong> Gas fees on Ethereum/Public chains exceed the value of energy traded
+                    </div>
+                    <div class="feature-box fragment">
+                        <strong>3. Governance:</strong> National infrastructure requires control (KYC/AML), not anonymous networks
+                    </div>
+                </section>
+            </section>
+
+            <!-- Solution -->
+            <section data-auto-animate>
+                <h2>2. The Solution: GridTokenX</h2>
+                <p>A <span class="highlight">Hybrid Permissioned Blockchain</span> specifically designed for energy trading.</p>
+                <div class="two-column" style="margin-top: 40px;">
+                    <div class="metric-card fragment">
+                        <div class="value">0</div>
+                        <div class="label">Gas Fees (Private Cluster)</div>
+                    </div>
+                    <div class="metric-card fragment">
+                        <div class="value">65K+</div>
+                        <div class="label">TPS (Theoretical)</div>
+                    </div>
+                    <div class="metric-card fragment">
+                        <div class="value">DvP</div>
+                        <div class="label">Atomic Settlement</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Core Architecture -->
+            <section>
+                <section data-auto-animate>
+                    <h2>3. Core Architecture (Tri-Layer)</h2>
+                    <div class="two-column">
+                        <div>
+                            <div class="feature-box fragment">
+                                <strong>L1 - Consensus:</strong><br>
+                                Solana (PoA) for truth & settlement
+                            </div>
+                            <div class="feature-box fragment">
+                                <strong>L2 - Middleware:</strong><br>
+                                Rust API Gateway & Matching Engine
+                            </div>
+                            <div class="feature-box fragment">
+                                <strong>L3 - Edge:</strong><br>
+                                IoT Simulators & Smart Meters
+                            </div>
+                        </div>
+                        <div class="diagram-container">
+                            <img src="../solana-l1-architecture.svg" alt="Architecture">
+                        </div>
+                    </div>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>3.1. System Protocols Overview</h2>
+                    <ul>
+                        <li class="fragment"><strong>Gateway:</strong> gRPC & JSON-RPC orchestration</li>
+                        <li class="fragment"><strong>Blockchain:</strong> Gossip Protocol for validators</li>
+                        <li class="fragment"><strong>Clients:</strong> Secure WSS (WebSockets)</li>
+                    </ul>
+                    <div class="diagram-container fragment">
+                        <img src="../protocol-communication.svg" alt="Protocols" style="max-height: 350px;">
+                    </div>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>3.2. Anchor Smart Contracts</h2>
+                    <p>The "Brain" of the blockchain - <span class="highlight">5 specialized programs</span></p>
+                    <div class="two-column">
+                        <div>
+                            <ol>
+                                <li class="fragment"><strong>Registry:</strong> PDAs for 10,000+ meters</li>
+                                <li class="fragment"><strong>Oracle:</strong> IoT signature verification</li>
+                                <li class="fragment"><strong>Token:</strong> SPL-2022 Mint/Burn/Transfer</li>
+                                <li class="fragment"><strong>Trading:</strong> Order book & escrow</li>
+                                <li class="fragment"><strong>Governance:</strong> Fee & role management</li>
+                            </ol>
+                        </div>
+                        <div class="diagram-container">
+                            <img src="../component-anchor-program.svg" alt="Smart Contracts">
+                        </div>
+                    </div>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>3.3. Governance & Operations</h2>
+                    <p>Controlled by a <span class="highlight">Proof-of-Authority (PoA)</span> Council</p>
+                    <div class="feature-box fragment">🔑 <strong>Admin:</strong> Upgrades contracts, sets fee structures</div>
+                    <div class="feature-box fragment">✅ <strong>Verifier:</strong> Whitelists new meters (KYC)</div>
+                    <div class="feature-box fragment">🚨 <strong>Emergency:</strong> Circuit breaker to pause trading</div>
+                    <div class="diagram-container fragment">
+                        <img src="../layer2-poa-governance.svg" alt="Governance" style="max-height: 280px;">
+                    </div>
+                </section>
+            </section>
+
+            <!-- Innovation -->
+            <section>
+                <section data-auto-animate>
+                    <h2>4. Innovation: Hybrid Consensus</h2>
+                    <p>Combining the best of centralized and decentralized worlds</p>
+                    <div class="feature-box fragment">
+                        ⏱️ <strong>Proof of History (PoH):</strong> Fast clock synchronization
+                    </div>
+                    <div class="feature-box fragment">
+                        🔐 <strong>Proof of Authority (PoA):</strong> Authorized validators only (Regulatory compliant)
+                    </div>
+                    <div class="feature-box fragment">
+                        🔄 <strong>Dual-State Consistency:</strong><br>
+                        <em>Fast Path:</em> In-memory Rust matching<br>
+                        <em>Slow Path:</em> On-chain anchor settlement
+                    </div>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>4. Innovation: Hybrid Consensus</h2>
+                    <div class="diagram-container">
+                        <img src="../hybrid-consensus.svg" alt="Hybrid Consensus">
+                    </div>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>4.1. Parallel Execution (Sealevel)</h2>
+                    <p>Unlike EVM (Sequential), Solana processes transactions in <span class="highlight-green">Parallel</span></p>
+                    <ul>
+                        <li class="fragment"><strong>Non-Overlapping State:</strong> Transactions touching different accounts run simultaneously</li>
+                        <li class="fragment"><strong>Horizontal Scaling:</strong> Utilizes all CPU cores on Validator</li>
+                    </ul>
+                    <div class="diagram-container fragment">
+                        <img src="../solana-sealevel-runtime.svg" alt="Sealevel Runtime">
+                    </div>
+                </section>
+            </section>
+
+            <!-- System Workflow -->
+            <section>
+                <section data-auto-animate>
+                    <h2>5. System Workflow (Happy Path)</h2>
+                    <ol>
+                        <li class="fragment">📝 <strong>Registration:</strong> User KYC → PDA Wallet Creation</li>
+                        <li class="fragment">📊 <strong>Telemetry:</strong> Meter sends kWh → Oracle mints <span class="highlight">GXT Tokens</span></li>
+                        <li class="fragment">💰 <strong>Offer:</strong> Prosumer lists 10 GXT @ 4.00 THB</li>
+                        <li class="fragment">🤝 <strong>Match:</strong> Consumer buys → Atomic Swap executes</li>
+                        <li class="fragment">✅ <strong>Result:</strong> Prosumer gets Stablecoin, Consumer gets GXT (Burned)</li>
+                    </ol>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>5.1. Sequence: Onboarding (KYC)</h2>
+                    <ul>
+                        <li>Users map their <strong>Real Identity</strong> to a <strong>Digital Wallet</strong></li>
+                        <li>Smart Meters are registered as <strong>PDAs</strong></li>
+                    </ul>
+                    <div class="diagram-container">
+                        <img src="../seq-onboarding.svg" alt="Onboarding Sequence">
+                    </div>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>5.2. Sequence: Telemetry & Minting</h2>
+                    <p>The journey from <code>Watts</code> to <code>Wallet</code></p>
+                    <ol>
+                        <li class="fragment">📖 <strong>Read:</strong> Meter reads consumption</li>
+                        <li class="fragment">🔏 <strong>Sign:</strong> Signs data with private key</li>
+                        <li class="fragment">✔️ <strong>Verify:</strong> Oracle checks signature on-chain</li>
+                        <li class="fragment">🪙 <strong>Mint:</strong> 1 kWh = 1 GXT</li>
+                    </ol>
+                    <div class="diagram-container fragment">
+                        <img src="../seq-telemetry-minting.svg" alt="Minting Sequence" style="max-height: 280px;">
+                    </div>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>5.3. Sequence: The Trading Cycle</h2>
+                    <ul>
+                        <li><strong>Order Book:</strong> Managed off-chain for speed (Rust)</li>
+                        <li><strong>Settlement:</strong> Executed on-chain for trust (Solana)</li>
+                    </ul>
+                    <div class="diagram-container">
+                        <img src="../seq-trading-cycle.svg" alt="Trading Cycle">
+                    </div>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>5.4. Deep Dive: Transaction Atomicity</h2>
+                    <p>Ensuring <span class="highlight">Trustless Settlement</span></p>
+                    <div class="feature-box fragment">
+                        <strong>Instruction 1:</strong> Transfer GXT Token (Seller → Buyer)
+                    </div>
+                    <div class="feature-box fragment">
+                        <strong>Instruction 2:</strong> Transfer Stablecoin (Buyer → Seller)
+                    </div>
+                    <div class="fragment" style="background: rgba(0,255,136,0.2); padding: 20px; border-radius: 8px; margin-top: 20px;">
+                        <strong>Result:</strong> If one fails, <span class="highlight-green">BOTH fail</span>. No partial states.
+                    </div>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>5.5. Economic Model (Cash Flow)</h2>
+                    <p>Sustainable revenue distribution</p>
+                    <div class="feature-box fragment">
+                        💵 <strong>Prosumer:</strong> Receives Energy Price (<span class="highlight-green">4 THB</span>)
+                    </div>
+                    <div class="feature-box fragment">
+                        🏢 <strong>Platform:</strong> Deducts Service Fee (<span class="highlight-yellow">0.1 THB</span>)
+                    </div>
+                    <div class="feature-box fragment">
+                        ⚡ <strong>Grid Operator:</strong> Receives Wheeling Charge (<span class="highlight">1.0 THB</span>)
+                    </div>
+                </section>
+            </section>
+
+            <!-- Simulation & Visualization -->
+            <section>
+                <section data-auto-animate>
+                    <h2>6. Simulation & Visualization</h2>
+                    <h3>3D Interactive Grid Map</h3>
+                    <ul>
+                        <li class="fragment"><strong>Technology:</strong> Mapbox GL JS + WebGL</li>
+                        <li class="fragment">Real-time Energy Flow (Pulsing Lines)</li>
+                        <li class="fragment">Active Trade Zones (Dynamic Polygons)</li>
+                        <li class="fragment">Live Meter Status (Green/Red)</li>
+                    </ul>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>6. Simulation & Visualization</h2>
+                    <h3>Weather-Based Generation</h3>
+                    <ul>
+                        <li class="fragment">Uses <strong>Gaussian Distribution</strong> to simulate solar curves</li>
+                        <li class="fragment">Factors: Cloud Cover, Temperature Derating, System Efficiency</li>
+                    </ul>
+                    <h3 class="fragment" style="margin-top: 30px;">Dashboard Features</h3>
+                    <ul>
+                        <li class="fragment">🔗 <strong>Wallet Connection:</strong> Phantom/Solflare via wallet-adapter</li>
+                        <li class="fragment">📈 <strong>Real-time Price:</strong> WebSockets (WSS)</li>
+                        <li class="fragment">🗺️ <strong>Vector Mapping:</strong> Mapbox GL</li>
+                    </ul>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>6.1. Technology Stack</h2>
+                    <div class="diagram-container">
+                        <img src="../software-library-table.svg" alt="Tech Stack">
+                    </div>
+                </section>
+            </section>
+
+            <!-- Testing & Results -->
+            <section>
+                <section data-auto-animate>
+                    <h2>7. Testing & Performance Results</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Target</th>
+                                <th>Actual (Sim)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="fragment">
+                                <td><strong>Throughput</strong></td>
+                                <td>500 TPS</td>
+                                <td style="color: #00ff88; font-weight: bold;">850 TPS</td>
+                            </tr>
+                            <tr class="fragment">
+                                <td><strong>Finality</strong></td>
+                                <td>&lt; 2.0s</td>
+                                <td style="color: #00ff88; font-weight: bold;">0.8s</td>
+                            </tr>
+                            <tr class="fragment">
+                                <td><strong>Matching</strong></td>
+                                <td>&lt; 100ms</td>
+                                <td style="color: #00ff88; font-weight: bold;">12ms</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section data-auto-animate>
+                    <h2>7. Security Checks</h2>
+                    <div class="feature-box fragment">
+                        ✅ <strong>Replay Attack Protection</strong> (Nonce/Slot check)
+                    </div>
+                    <div class="feature-box fragment">
+                        ✅ <strong>Double Spend Prevention</strong> (Atomic Escrow)
+                    </div>
+                    <div class="feature-box fragment">
+                        ✅ <strong>Unauthorized Access</strong> (PDA Signer check)
+                    </div>
+                </section>
+            </section>
+
+            <!-- Timeline -->
+            <section data-auto-animate>
+                <h2>8. Project Timeline</h2>
+                <div style="text-align: left; font-size: 0.9em;">
+                    <div class="feature-box">
+                        <strong style="color: #00ff88;">✅ Phase 1 (Done):</strong> Research & Architecture (Jun 2024)
+                    </div>
+                    <div class="feature-box">
+                        <strong style="color: #00ff88;">✅ Phase 2 (Done):</strong> Smart Contracts & Backend (Aug - Oct 2025)
+                    </div>
+                    <div class="feature-box">
+                        <strong style="color: #ffd700;">🚧 Phase 3 (Active):</strong> Frontend & Integration (Nov 2025 - Jan 2026)
+                    </div>
+                    <div class="feature-box">
+                        <strong style="color: #00d4ff;">📅 Final Demo:</strong> February 15, 2026
+                    </div>
+                </div>
+            </section>
+
+            <!-- Thank You -->
+            <section data-background-gradient="linear-gradient(135deg, #0f3460 0%, #16213e 50%, #1a1a2e 100%)">
+                <h1 style="font-size: 3em;">Thank You</h1>
+                <h2>Q & A</h2>
+                <div style="margin-top: 50px;">
+                    <h3 style="color: #00d4ff;">GridTokenX</h3>
+                    <p><em>Decentralizing Energy for a Sustainable Future</em></p>
+                </div>
+                <div style="margin-top: 40px; font-size: 2em;">
+                    ☀️ ⚡ 🔗 💰
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/zoom/zoom.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: 'c/t',
+            progress: true,
+            center: true,
+            transition: 'slide',
+            transitionSpeed: 'default',
+            backgroundTransition: 'fade',
+            plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealZoom ]
+        });
+    </script>
+</body>
+</html>

@@ -1,33 +1,17 @@
 @startuml
 !pragma teoz true
 
-' Visual Configuration
-skinparam defaultFontName "Helvetica Neue"
-skinparam defaultFontSize 12
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam backgroundColor #FFFFFF
 
-skinparam sequence {
-    ArrowColor #2C3E50
-    LifeLineBorderColor #34495E
-    LifeLineBackgroundColor #ECF0F1
-    ParticipantBorderColor #2980B9
-    ParticipantBackgroundColor #3498DB
-    ParticipantFontColor white
-    GroupBackgroundColor #F8F9FA
-    DividerBackgroundColor #E9ECEF
-}
 
 title <size:18>**Transaction Atomicity & Security Flow**</size>\nTrustless P2P Settlement Execution
 
-box "Middleware" #FFF3E0
-    participant "API Gateway\n(Rust Signer)" as Gateway #FF9800
+box "Middleware"
+    participant "API Gateway\n(Rust Signer)" as Gateway
 end box
 
-box "Solana Network" #EDE7F6
-    participant "Escrow Program\n(Anchor PDA)" as Escrow #673AB7
-    participant "User Wallets\n(SPL Accounts)" as Wallets #512DA8
+box "Solana Network"
+    participant "Escrow Program\n(Anchor PDA)" as Escrow
+    participant "User Wallets\n(SPL Accounts)" as Wallets
 end box
 
 == <size:14>Atomic Settlement Process</size> ==
@@ -35,10 +19,10 @@ end box
 autonumber "<b>[00]</b>"
 
 Gateway -> Escrow : match_orders(buy_pda, sell_pda)
-activate Gateway #FFE0B2
-activate Escrow #D1C4E9
+activate Gateway
+activate Escrow
 
-note over Escrow #FFEBEE
+note over Escrow
     **On-Chain Security Core:**
     1. Verify Platform Signature
     2. Check Buyer Balance (USDC)
@@ -46,7 +30,7 @@ note over Escrow #FFEBEE
     4. Validate Price Integrity
 end note
 
-group #E8F5E9 Atomic Instructions (One Transaction)
+group Atomic Instructions (One Transaction)
     Escrow -> Wallets : Transfer GXT to Buyer
     Wallets -> Wallets : Update Ledger State
     
@@ -57,7 +41,7 @@ group #E8F5E9 Atomic Instructions (One Transaction)
     Wallets -> Wallets : Update Ledger State
 end
 
-note right of Escrow #BBFFBB
+note right of Escrow
     **Atomicity Guarantee:**
     If any transfer fails (e.g., 
     insufficient funds), the 

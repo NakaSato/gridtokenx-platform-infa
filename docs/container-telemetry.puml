@@ -1,0 +1,46 @@
+@startuml
+!include <C4/C4_Container>
+!include <tupadr3/devicons/python>
+!include <tupadr3/devicons/rust>
+!include <tupadr3/devicons/postgresql>
+!include <tupadr3/font-awesome-5/server>
+!include <tupadr3/font-awesome-5/bolt>
+
+skinparam defaultFontName "Helvetica Neue"
+
+title **GridTokenX - Telemetry Container View**\nIoT Data Ingestion & Validation
+
+System_Boundary(platform, "GridTokenX Platform") {
+
+    System_Boundary(iot_layer, "IoT Simulation Tier") {
+        Container(simulator, "Smart Meter Sim", "Python, FastAPI", "Simulates smart meter readings and grid load.", $sprite="python")
+    }
+
+    System_Boundary(ingestion_layer, "Streaming Layer") {
+        ContainerQueue(kafka, "Event Stream", "Apache Kafka", "High-throughput telemetry buffer.", $sprite="server")
+    }
+
+    System_Boundary(backend_layer, "Service Layer") {
+        Container(gateway, "API Gateway", "Rust, Axum", "Validates readings and triggers minting events.", $sprite="rust")
+    }
+
+    System_Boundary(data_layer, "Persistence") {
+        ContainerDb(influx, "Metrics DB", "InfluxDB", "Time-series storage for raw meter data.", $sprite="bolt")
+        ContainerDb(db, "Primary DB", "PostgreSQL", "Stores device configuration and validation logs.", $sprite="postgresql")
+    }
+}
+
+' Telemetry Flows
+Rel_R(simulator, kafka, "Publishes Readings", "Kafka Protocol")
+Rel_D(simulator, influx, "Direct Metrics Write", "Line Protocol")
+Rel_D(simulator, db, "Fetch Device Config", "SQL")
+
+Rel_D(gateway, kafka, "Consumes Readings", "Kafka Protocol")
+Rel_D(gateway, db, "Log Validation", "SQL")
+
+' Layout hints
+Lay_D(iot_layer, ingestion_layer)
+Lay_R(ingestion_layer, backend_layer)
+Lay_D(backend_layer, data_layer)
+
+@enduml

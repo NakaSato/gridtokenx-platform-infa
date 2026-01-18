@@ -1,0 +1,48 @@
+@startuml
+!include <C4/C4_Sequence>
+
+skinparam defaultFontName "Helvetica Neue"
+title **GridTokenX: Telemetry to Token**\nOracle Validation & Minting
+
+participant "Smart Meter" as IoT
+participant "API Gateway" as API
+participant "Oracle Program" as Oracle
+participant "Registry Program" as Registry
+participant "Energy Token Program" as Token
+entity "Oracle Data PDA" as OData
+entity "Meter PDA" as MeterAcc
+entity "Token Info PDA" as TInfo
+entity "SPL Mint" as Mint
+
+== Data Ingestion (Every 5 min) ==
+IoT -> API: Push Reading {kWh, Timestamp}
+API -> Oracle: **submit_meter_reading(id, gen, cons)**
+activate Oracle
+Oracle -> OData: Validates Ranges & Anomaly Check
+Oracle -> OData: Update Stats (Quality Score)
+Oracle --> API: Accepted
+deactivate Oracle
+
+== Market Clearing Trigger ==
+API -> Oracle: **trigger_market_clearing()**
+activate Oracle
+Oracle -> OData: Update Last Clearing Timestamp
+Oracle --> API: OK
+deactivate Oracle
+
+== Settlement & Minting ==
+API -> Registry: **settle_and_mint_tokens()**
+activate Registry
+Registry -> MeterAcc: Read total_generation
+Registry -> MeterAcc: Calculate Unsettled (Total - Settled)
+Registry -> MeterAcc: Update Settled Balance
+Registry -> Token: **CPI: mint_tokens_direct(amount)**
+activate Token
+Token -> TInfo: Verify Authority (Registry)
+Token -> Mint: **SPL MintTo(UserWallet)**
+Token --> Registry: Minted
+deactivate Token
+Registry --> API: Success (Tokens Issued)
+deactivate Registry
+
+@enduml

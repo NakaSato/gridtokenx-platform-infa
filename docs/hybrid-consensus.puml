@@ -1,0 +1,43 @@
+@startuml hybrid-consensus
+!include <C4/C4_Component>
+
+skinparam defaultFontName "Helvetica Neue"
+title **GridTokenX: Hybrid Consensus Model**\nLayer 1 Blockchain + Application Governance
+
+' -- NODES --
+
+System_Ext(admin, "Platform Admin", "Authority Keypair", "Manages Meter Registry & Config")
+
+System_Boundary(l1_layer, "Layer 1: Blockchain Infrastructure (Solana)") {
+    Component(validator, "Validator Node", "PoH / Tower BFT", "Ensures Global Consensus & Finality")
+    Component(ledger, "Distributed Ledger", "Blockstore", "Immutable Record of Truth")
+}
+
+System_Boundary(l2_layer, "Layer 2: Application Governance (Anchor)") {
+    Component(gov_program, "Governance Program", "Smart Contract", "Enforces Admin Authority (PoA)")
+    Component(oracle_program, "Oracle Program", "Smart Contract", "Validates Data Integrity")
+    Component(registry_program, "Registry Program", "Smart Contract", "Manages Identity PDAs")
+    
+    ComponentDb(pda_state, "Program State", "PDAs", "Authorized Meters & Configs")
+}
+
+' -- FLOW --
+
+' App Layer Flow (PoA)
+Rel(admin, gov_program, "1. Sign & Submit Admin Instruction", "Ed25519 Sig")
+Rel(gov_program, pda_state, "2. Verify Authority & Update State", "PoA Logic")
+Rel(gov_program, registry_program, "3. Whitelist Meter", "CPI")
+
+' L1 Layer Flow (PoH)
+Rel(gov_program, validator, "4. Instruction Execution", "Sealevel")
+Rel(validator, ledger, "5. Append Transaction", "PoH Stream")
+Rel(validator, validator, "6. Vote / Finalize System State", "Tower BFT")
+
+' Cross-Layer
+Rel(oracle_program, pda_state, "Read Config", "Validation")
+
+' Layout
+Lay_D(admin, l2_layer)
+Lay_D(l2_layer, l1_layer)
+
+@enduml

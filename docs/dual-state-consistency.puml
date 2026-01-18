@@ -5,13 +5,6 @@
 !include <tupadr3/font-awesome-5/coins>
 !include <tupadr3/font-awesome-5/check_circle>
 
-' Visual Configuration
-skinparam defaultFontName "Helvetica Neue"
-skinparam defaultFontSize 14
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam backgroundColor #FFFFFF
-
 title **Advanced Architectural View: Dual-State Consistency Model**\nBridging High-Speed Execution with On-Chain Finality
 
 ' Component Definitions
@@ -37,7 +30,7 @@ Rel_D(escrow, on_chain_state, "Consensus Finality", "Slot Confirmation")
 Rel_Neighbor(on_chain_state, pg, "Sync Worker", "Event Listening (WSS)")
 
 ' Key Explanatory Notes
-note top of me #FFF9C4
+note top of me
   **Why Dual-State?**
   1. **Latency**: Blockchain ≈ 400ms. 
      Rust Middleware ≈ 1ms.
@@ -47,7 +40,7 @@ note top of me #FFF9C4
      prevents double-spending.
 end note
 
-note bottom of escrow #E8F5E9
+note bottom of escrow
   **Trust Model:**
   User tokens are NEVER stored 
   on our servers. They moved 

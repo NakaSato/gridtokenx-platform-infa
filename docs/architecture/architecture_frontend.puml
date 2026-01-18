@@ -4,17 +4,7 @@
 !include <tupadr3/font-awesome-5/user>
 !include <tupadr3/font-awesome-5/wallet>
 
-' Visual Configuration
-skinparam defaultFontName "Helvetica Neue"
-skinparam defaultFontSize 14
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam backgroundColor #FFFFFF
 
-' Premium Palette
-!define PERSON_BG_COLOR #27AE60
-!define CONTAINER_BG_COLOR #3498DB
-!define EXTERNAL_SYSTEM_BG_COLOR #95A5A6
 
 title **Frontend Layer - Architecture & Protocols**
 

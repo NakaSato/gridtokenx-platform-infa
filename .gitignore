@@ -5,6 +5,8 @@
 /gridtokenx-smartmeter-simulator
 /gridtokenx-anchor
 
+*.pem
+
 # Environment Variables
 .env
 .env.local

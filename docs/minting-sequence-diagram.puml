@@ -9,64 +9,31 @@
 
 title <size:20>**GridTokenX - Token Minting Sequence**</size>\nEnergy Token Minting Process Flow
 
-' Visual Configuration
-skinparam defaultFontName "Helvetica Neue"
-skinparam defaultFontSize 12
-skinparam roundCorner 8
-skinparam shadowing false
 
-skinparam sequence {
-    ArrowColor #2C3E50
-    ArrowFontSize 11
-    LifeLineBorderColor #34495E
-    LifeLineBackgroundColor #ECF0F1
-    
-    ParticipantBorderColor #2980B9
-    ParticipantBackgroundColor #3498DB
-    ParticipantFontColor white
-    ParticipantFontStyle bold
-    
-    ActorBorderColor #27AE60
-    ActorBackgroundColor #2ECC71
-    
-    GroupBackgroundColor #F8F9FA
-    GroupBorderColor #DEE2E6
-    
-    DividerBackgroundColor #E9ECEF
-    DividerBorderColor #CED4DA
-    
-    BoxBorderColor #6C757D
-    BoxBackgroundColor #F8F9FA
-}
-
-skinparam note {
-    BackgroundColor #FFF9C4
-    BorderColor #F9A825
-}
 
 ' Participants Definition
-actor "Energy Producer\n(Prosumer)" as User #27AE60
-box "Frontend Layer" #E3F2FD
-    participant "Trading App\n//Next.js + Wallet//" as FE #2196F3
+actor "Energy Producer\n(Prosumer)" as User
+box "Frontend Layer"
+    participant "Trading App\n//Next.js + Wallet//" as FE
 end box
 
-box "Backend Layer" #FFF3E0
-    participant "API Gateway\n//Rust / Axum//" as API #FF9800
-    participant "Kafka\n//Message Queue//" as KAFKA #795548
+box "Backend Layer"
+    participant "API Gateway\n//Rust / Axum//" as API
+    participant "Kafka\n//Message Queue//" as KAFKA
 end box
 
-box "Data Layer" #F3E5F5
-    database "PostgreSQL\n//Persistent Store//" as DB #9C27B0
-    database "Redis\n//Cache / Session//" as REDIS #E91E63
+box "Data Layer"
+    database "PostgreSQL\n//Persistent Store//" as DB
+    database "Redis\n//Cache / Session//" as REDIS
 end box
 
-box "External Services" #E8F5E9
-    participant "Pyth Oracle\n//Price Feed//" as ORACLE #4CAF50
+box "External Services"
+    participant "Pyth Oracle\n//Price Feed//" as ORACLE
 end box
 
-box "Solana Blockchain" #EDE7F6
-    participant "Anchor Programs\n//GridTokenX//" as ANCHOR #673AB7
-    participant "SPL Token\n//Token Program//" as SPL #512DA8
+box "Solana Blockchain"
+    participant "Anchor Programs\n//GridTokenX//" as ANCHOR
+    participant "SPL Token\n//Token Program//" as SPL
 end box
 
 ' ============================================================================
@@ -77,19 +44,19 @@ end box
 autonumber "<b>[0]</b>"
 
 User -> FE : Connect Wallet (Phantom/Solflare)
-activate FE #BBDEFB
+activate FE
 FE -> FE : Initialize Wallet Adapter
 FE --> User : Wallet Connected
 
 User -> FE : Access Minting Portal
 FE -> API : POST /api/auth/session\n{wallet_address}
-activate API #FFE0B2
+activate API
 API -> DB : Query prosumer_registry
-activate DB #E1BEE7
+activate DB
 DB --> API : Prosumer Profile & Permissions
 deactivate DB
 API -> REDIS : SET session:{wallet} TTL=3600
-activate REDIS #F8BBD9
+activate REDIS
 REDIS --> API : OK
 deactivate REDIS
 API --> FE : Session Token + User Profile
@@ -103,20 +70,20 @@ deactivate FE
 == <size:14>**② Energy Data Collection & Validation**</size> ==
 
 User -> FE : Submit Energy Reading\n(MWh Produced)
-activate FE #BBDEFB
+activate FE
 
 note over FE : Validates format:\n• Positive number\n• Within daily limits
 
 FE -> API : POST /api/energy/validate\n{meter_id, reading_mwh, timestamp}
-activate API #FFE0B2
+activate API
 
 API -> KAFKA : Subscribe: meter-readings
-activate KAFKA #BCAAA4
+activate KAFKA
 KAFKA --> API : Latest meter data stream
 deactivate KAFKA
 
 API -> DB : SELECT production_history\nWHERE meter_id = ? AND date >= ?
-activate DB #E1BEE7
+activate DB
 DB --> API : Historical Production Data
 deactivate DB
 
@@ -129,12 +96,12 @@ note right of API
 end note
 
 API -> ORACLE : GET /v2/price_feeds/energy
-activate ORACLE #C8E6C9
+activate ORACLE
 ORACLE --> API : Current Energy Price (USD/MWh)
 deactivate ORACLE
 
 API -> REDIS : SETEX validation:{reading_id} 300 {result}
-activate REDIS #F8BBD9
+activate REDIS
 REDIS --> API : OK
 deactivate REDIS
 
@@ -150,27 +117,27 @@ deactivate FE
 == <size:14>**③ Minting Authorization Request**</size> ==
 
 User -> FE : Confirm Minting Request
-activate FE #BBDEFB
+activate FE
 
 FE -> API : POST /api/mint/authorize\n{reading_id, amount_mwh}
-activate API #FFE0B2
+activate API
 
 API -> REDIS : GET validation:{reading_id}
-activate REDIS #F8BBD9
+activate REDIS
 REDIS --> API : Cached Validation Result
 deactivate REDIS
 
 API -> DB : Check minting_quotas\nWHERE prosumer_id = ?
-activate DB #E1BEE7
+activate DB
 DB --> API : Daily/Monthly Quota Status
 deactivate DB
 
-alt #FFEBEE Quota Exceeded
+alt Quota Exceeded
     API --> FE : 429 Rate Limited\n{quota_reset_time}
     FE --> User : Quota Exceeded Message
-else #E8F5E9 Quota Available
+else Quota Available
     API -> DB : INSERT mint_requests\n(status: PENDING)
-    activate DB #E1BEE7
+    activate DB
     DB --> API : request_id
     deactivate DB
     API --> FE : Authorization Granted\n{request_id, nonce}
@@ -186,12 +153,12 @@ deactivate FE
 == <size:14>**④ Blockchain Token Minting**</size> ==
 
 User -> FE : Sign Transaction\n(Wallet Popup)
-activate FE #BBDEFB
+activate FE
 
-note over User, FE #BBFFBB : User reviews and approves\ntransaction in wallet extension
+note over User, FE : User reviews and approves\ntransaction in wallet extension
 
 FE -> ANCHOR : invoke: mint_energy_tokens\n{request_id, amount, signature}
-activate ANCHOR #D1C4E9
+activate ANCHOR
 
 ANCHOR -> ANCHOR : Verify mint authority PDA
 ANCHOR -> ANCHOR : Validate oracle price attestation
@@ -206,7 +173,7 @@ note over ANCHOR
 end note
 
 ANCHOR -> SPL : CPI: mint_to\n{mint, destination, amount}
-activate SPL #C5CAE9
+activate SPL
 SPL -> SPL : Update token supply
 SPL -> SPL : Update destination balance
 SPL --> ANCHOR : MintTo Success
@@ -216,15 +183,15 @@ ANCHOR --> FE : Transaction Signature\n{tx_hash, slot, tokens_minted}
 deactivate ANCHOR
 
 FE -> API : POST /api/mint/confirm\n{request_id, tx_hash}
-activate API #FFE0B2
+activate API
 
 API -> DB : UPDATE mint_requests\nSET status = 'COMPLETED',\ntx_hash = ?
-activate DB #E1BEE7
+activate DB
 DB --> API : Updated
 deactivate DB
 
 API -> REDIS : PUBLISH channel:user:{wallet}\n{type: 'mint_complete', ...}
-activate REDIS #F8BBD9
+activate REDIS
 REDIS --> API : Published
 deactivate REDIS
 
@@ -240,16 +207,16 @@ deactivate FE
 == <size:14>**⑤ Post-Minting & Notifications**</size> ==
 
 API ->> KAFKA : PRODUCE: minting-events\n{producer_id, amount, tx_hash}
-activate KAFKA #BCAAA4
+activate KAFKA
 note right of KAFKA : Event sourcing for\nanalytics & audit
 deactivate KAFKA
 
 API ->> DB : INSERT transaction_log\n(for audit trail)
 
 User -> FE : View Updated Balance
-activate FE #BBDEFB
+activate FE
 FE -> ANCHOR : getTokenAccountBalance\n(user_wallet)
-activate ANCHOR #D1C4E9
+activate ANCHOR
 ANCHOR --> FE : {balance, decimals}
 deactivate ANCHOR
 FE --> User : Display New Token Balance\n& Transaction Receipt
@@ -260,25 +227,25 @@ deactivate FE
 ' ============================================================================
 == <size:14>**⑥ Error Handling Scenarios**</size> ==
 
-alt #FFCDD2 Validation Failed
-    API -[#D32F2F]-> FE : 400 Bad Request\n{error_code, message}
-    FE -[#D32F2F]-> User : ⚠️ Validation Error\n(Correct Data Prompt)
-else #FFCDD2 Insufficient Permissions
-    API -[#D32F2F]-> FE : 403 Forbidden\n{required_role}
-    FE -[#D32F2F]-> User : 🔒 Access Denied
-else #FFCDD2 Blockchain Transaction Failed
-    ANCHOR -[#D32F2F]-> FE : TransactionError\n{logs, error_code}
+alt Validation Failed
+    API --> FE : 400 Bad Request\n{error_code, message}
+    FE --> User : ⚠️ Validation Error\n(Correct Data Prompt)
+else Insufficient Permissions
+    API --> FE : 403 Forbidden\n{required_role}
+    FE --> User : 🔒 Access Denied
+else Blockchain Transaction Failed
+    ANCHOR --> FE : TransactionError\n{logs, error_code}
     FE -> API : POST /api/mint/failed\n{request_id, error}
-    activate API #FFE0B2
+    activate API
     API -> DB : UPDATE mint_requests\nSET status = 'FAILED',\nerror_log = ?
-    activate DB #E1BEE7
+    activate DB
     DB --> API : Updated
     deactivate DB
     API --> FE : Failure Acknowledged
     deactivate API
-    FE -[#D32F2F]-> User : ❌ Transaction Failed\n(Retry Option)
-else #FFCDD2 Network/Timeout Error
-    FE -[#D32F2F]-> User : 📡 Connection Error\n(Auto-Retry in Progress)
+    FE --> User : ❌ Transaction Failed\n(Retry Option)
+else Network/Timeout Error
+    FE --> User : 📡 Connection Error\n(Auto-Retry in Progress)
     FE -> FE : Exponential backoff retry
 end
 

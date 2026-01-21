@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id as \"id!\", settlement_id as \"settlement_id!\", amount as \"amount!\", revenue_type as \"revenue_type!\", description, created_at as \"created_at!\"\n            FROM platform_revenue\n            ORDER BY created_at DESC\n            LIMIT $1 OFFSET $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "settlement_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "revenue_type!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "68b5881cfeb0dfd784d6bfae9bbf0bb739938b064937acecff29cc0270f3ef4f"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE recurring_orders\n        SET status = 'cancelled', updated_at = NOW()\n        WHERE id = $1 AND user_id = $2 AND status NOT IN ('cancelled', 'completed')\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bdabbef89f048ff5221eee8d51984ce250ee58b108ab1017a7275a31cff2ce5a"
+}

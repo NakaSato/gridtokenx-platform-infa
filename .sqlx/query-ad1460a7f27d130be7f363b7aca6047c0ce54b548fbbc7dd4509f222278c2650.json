@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, meter_serial, meter_key_hash, verification_method,\n                verification_status, user_id, manufacturer, meter_type,\n                location_address, installation_date, verification_proof,\n                verified_at, verified_by, created_at, updated_at\n            FROM meter_registry\n            WHERE meter_serial = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "meter_serial",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "meter_key_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "verification_method",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "verification_status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "manufacturer",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "meter_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "location_address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "installation_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 10,
+        "name": "verification_proof",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "verified_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "verified_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "ad1460a7f27d130be7f363b7aca6047c0ce54b548fbbc7dd4509f222278c2650"
+}

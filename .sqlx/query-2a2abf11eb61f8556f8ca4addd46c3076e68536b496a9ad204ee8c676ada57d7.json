@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT order_filled, order_matched, conditional_triggered,\n                   recurring_executed, price_alerts, escrow_events, \n                   system_announcements, push_enabled, email_enabled\n            FROM user_notification_preferences\n            WHERE user_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_filled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 1,
+        "name": "order_matched",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "conditional_triggered",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "recurring_executed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "price_alerts",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "escrow_events",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "system_announcements",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "push_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "email_enabled",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "2a2abf11eb61f8556f8ca4addd46c3076e68536b496a9ad204ee8c676ada57d7"
+}

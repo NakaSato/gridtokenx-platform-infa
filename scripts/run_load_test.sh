@@ -12,7 +12,15 @@ VENV_ACTIVATE="$SIMULATOR_DIR/.venv/bin/activate"
 echo "🚀 Starting GridTokenX Load Test (1000 Meters)"
 echo "-----------------------------------------------"
 
-# 1. Generate Data
+# 1. Activate Venv & Generate Data
+echo "⚡ Activating environment..."
+if [ -f "$VENV_ACTIVATE" ]; then
+    source "$VENV_ACTIVATE"
+else
+    echo "❌ Simulator .venv not found at $VENV_ACTIVATE"
+    exit 1
+fi
+
 echo "📦 Generating datasets..."
 python3 generate_load_test_data.py
 

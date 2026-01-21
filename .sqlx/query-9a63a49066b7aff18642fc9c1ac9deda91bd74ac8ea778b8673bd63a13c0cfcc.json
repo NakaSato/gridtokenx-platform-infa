@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            id, order_type as \"order_type!: OrderType\", side as \"side!: OrderSide\", \n            energy_amount, price_per_kwh, filled_amount,\n            status as \"status!: OrderStatus\", created_at as \"created_at!\"\n        FROM trading_orders\n        WHERE user_id = $1\n          AND ($2::timestamptz IS NULL OR created_at >= $2)\n          AND ($3::timestamptz IS NULL OR created_at <= $3)\n        ORDER BY created_at DESC\n        LIMIT 10000\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "order_type!: OrderType",
+        "type_info": {
+          "Custom": {
+            "name": "order_type",
+            "kind": {
+              "Enum": [
+                "limit",
+                "market"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "side!: OrderSide",
+        "type_info": {
+          "Custom": {
+            "name": "order_side",
+            "kind": {
+              "Enum": [
+                "buy",
+                "sell"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "energy_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "price_per_kwh",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "filled_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "status!: OrderStatus",
+        "type_info": {
+          "Custom": {
+            "name": "order_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "active",
+                "partially_filled",
+                "filled",
+                "settled",
+                "cancelled",
+                "expired"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "9a63a49066b7aff18642fc9c1ac9deda91bd74ac8ea778b8673bd63a13c0cfcc"
+}

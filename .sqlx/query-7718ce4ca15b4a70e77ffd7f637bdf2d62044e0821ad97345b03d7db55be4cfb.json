@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            COUNT(*) FILTER (WHERE read = false) as \"unread_count!\",\n            COUNT(*) as \"total!\"\n        FROM notifications\n        WHERE user_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "unread_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "7718ce4ca15b4a70e77ffd7f637bdf2d62044e0821ad97345b03d7db55be4cfb"
+}

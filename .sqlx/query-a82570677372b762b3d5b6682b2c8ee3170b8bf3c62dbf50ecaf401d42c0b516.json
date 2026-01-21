@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO meter_verification_attempts (\n                meter_serial, user_id, verification_method,\n                ip_address, user_agent, attempt_status, failure_reason\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Uuid",
+        "Varchar",
+        "Inet",
+        "Text",
+        "Varchar",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a82570677372b762b3d5b6682b2c8ee3170b8bf3c62dbf50ecaf401d42c0b516"
+}

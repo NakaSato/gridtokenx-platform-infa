@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO carbon_credits (user_id, amount, source, status, description)\n        VALUES ($1, $2, 'transfer_in', 'active', $3)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Numeric",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b0f0d95ba88b9b8ba53051d10ac12b35b6bc4c259449f737f54de2511a600f94"
+}

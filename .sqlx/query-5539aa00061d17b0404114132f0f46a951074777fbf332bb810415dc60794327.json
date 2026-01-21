@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO meter_unminted_balances (meter_serial, accumulated_kwh, updated_at)\n            VALUES ($1, $2, NOW())\n            ON CONFLICT (meter_serial) \n            DO UPDATE SET \n                accumulated_kwh = meter_unminted_balances.accumulated_kwh + EXCLUDED.accumulated_kwh,\n                updated_at = NOW()\n            RETURNING accumulated_kwh\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "accumulated_kwh",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "5539aa00061d17b0404114132f0f46a951074777fbf332bb810415dc60794327"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT user_id FROM user_wallets WHERE wallet_address = $1\n                UNION\n                SELECT id as user_id FROM users WHERE wallet_address = $1\n                LIMIT 1\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "da711e017a4001f55ee0aa4347ae8ab18d2a769fb388e00e7f79445671242c5a"
+}

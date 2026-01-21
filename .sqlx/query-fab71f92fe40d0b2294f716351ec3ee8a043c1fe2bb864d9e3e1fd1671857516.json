@@ -1,0 +1,85 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO carbon_transactions (from_user_id, to_user_id, amount, status, notes)\n        VALUES ($1, $2, $3, 'completed', $4)\n        RETURNING id, from_user_id, to_user_id, amount, price_per_credit, total_value,\n                  status as \"status!: CarbonTransactionStatus\", notes, created_at as \"created_at!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "from_user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "to_user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "price_per_credit",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "status!: CarbonTransactionStatus",
+        "type_info": {
+          "Custom": {
+            "name": "carbon_transaction_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "completed",
+                "failed",
+                "cancelled"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "notes",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "fab71f92fe40d0b2294f716351ec3ee8a043c1fe2bb864d9e3e1fd1671857516"
+}

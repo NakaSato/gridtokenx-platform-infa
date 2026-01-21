@@ -1,6 +1,10 @@
 {
+  "scripts": {
+    "start:presentation": "bun run --cwd docs/proposal/slidev dev"
+  },
   "dependencies": {
     "@types/react-window": "^2.0.0",
-    "react-window": "^2.2.3"
+    "react-window": "^2.2.3",
+    "reveal.js": "^5.2.1"
   }
 }

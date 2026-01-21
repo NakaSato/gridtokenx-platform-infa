@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET balance = balance + $1, locked_amount = locked_amount - $1 WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Numeric",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0d848387415780a5d52122117ff0a0d99d3fb36f218a13bd660377d8484207b5"
+}

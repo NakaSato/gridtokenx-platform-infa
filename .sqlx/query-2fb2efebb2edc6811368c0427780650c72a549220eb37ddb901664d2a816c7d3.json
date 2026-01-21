@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE blockchain_tasks \n                SET status = CASE WHEN retry_count + 1 >= max_retries THEN 'max_retries' ELSE 'failed' END::task_status,\n                    retry_count = retry_count + 1,\n                    last_error = $2,\n                    next_retry_at = NOW() + (POWER(5, retry_count) * INTERVAL '1 second'),\n                    updated_at = NOW()\n                WHERE id = $1\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2fb2efebb2edc6811368c0427780650c72a549220eb37ddb901664d2a816c7d3"
+}

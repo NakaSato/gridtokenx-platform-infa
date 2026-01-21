@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE recurring_orders\n        SET status = 'active', next_execution_at = $3, updated_at = NOW()\n        WHERE id = $1 AND user_id = $2 AND status = 'paused'\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5afe3ff44f6b888d47c8c8bc86bcbcf9f99597b77ec4d3d9a19725fe72fbc1c3"
+}

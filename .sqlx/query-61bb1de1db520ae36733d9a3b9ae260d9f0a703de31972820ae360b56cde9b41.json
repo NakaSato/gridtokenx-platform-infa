@@ -1,0 +1,91 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO user_notification_preferences (user_id, order_filled, order_matched,\n            conditional_triggered, recurring_executed, price_alerts, escrow_events,\n            system_announcements, email_enabled, push_enabled, updated_at)\n        VALUES ($1, \n            COALESCE($2, true), COALESCE($3, true), COALESCE($4, true),\n            COALESCE($5, true), COALESCE($6, true), COALESCE($7, true),\n            COALESCE($8, true), COALESCE($9, false), COALESCE($10, true), NOW())\n        ON CONFLICT (user_id) DO UPDATE SET\n            order_filled = COALESCE($2, user_notification_preferences.order_filled),\n            order_matched = COALESCE($3, user_notification_preferences.order_matched),\n            conditional_triggered = COALESCE($4, user_notification_preferences.conditional_triggered),\n            recurring_executed = COALESCE($5, user_notification_preferences.recurring_executed),\n            price_alerts = COALESCE($6, user_notification_preferences.price_alerts),\n            escrow_events = COALESCE($7, user_notification_preferences.escrow_events),\n            system_announcements = COALESCE($8, user_notification_preferences.system_announcements),\n            email_enabled = COALESCE($9, user_notification_preferences.email_enabled),\n            push_enabled = COALESCE($10, user_notification_preferences.push_enabled),\n            updated_at = NOW()\n        RETURNING user_id, \n                  order_filled as \"order_filled!\", order_matched as \"order_matched!\",\n                  conditional_triggered as \"conditional_triggered!\", recurring_executed as \"recurring_executed!\",\n                  price_alerts as \"price_alerts!\", escrow_events as \"escrow_events!\",\n                  system_announcements as \"system_announcements!\", email_enabled as \"email_enabled!\",\n                  push_enabled as \"push_enabled!\", updated_at as \"updated_at!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "order_filled!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "order_matched!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "conditional_triggered!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "recurring_executed!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "price_alerts!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "escrow_events!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "system_announcements!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "email_enabled!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "push_enabled!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "61bb1de1db520ae36733d9a3b9ae260d9f0a703de31972820ae360b56cde9b41"
+}

@@ -13,12 +13,12 @@ GridTokenX คือแพลตฟอร์มซื้อขายใบรั
 
 ## 🎯 Problem Statement | ปัญหาที่พบ
 
-| Challenge | Impact |
-|-----------|--------|
-| **Manual Verification** | Slow, error-prone certificate validation |
-| **Lack of Transparency** | No real-time tracking of energy generation |
-| **Double-Counting** | Risk of fraudulent certificate claims |
-| **Market Inefficiency** | Limited liquidity, high transaction costs |
+| Challenge | Impact | ปัญหา | ผลกระทบ |
+|-----------|--------|-------|---------|
+| **Manual Verification** | Slow, error-prone certificate validation | **การตรวจสอบด้วยตนเอง** | ล่าช้าและเกิดข้อผิดพลาดง่าย |
+| **Lack of Transparency** | No real-time tracking of energy generation | **ขาดความโปร่งใส** | ไม่มีการติดตามการผลิตไฟฟ้าแบบเรียลไทม์ |
+| **Double-Counting** | Risk of fraudulent certificate claims | **การนับซ้ำ** | ความเสี่ยงในการอ้างสิทธิ์ซ้ำซ้อน |
+| **Market Inefficiency** | Limited liquidity, high transaction costs | **ตลาดไม่มีประสิทธิภาพ** | สภาพคล่องต่ำ ค่าธรรมเนียมสูง |
 
 ---
 
@@ -75,13 +75,13 @@ GridTokenX คือแพลตฟอร์มซื้อขายใบรั
 
 ### 1. Anchor Programs (Smart Contracts)
 
-| Program | Function |
-|---------|----------|
-| **gridtokenx_minting** | Create REC tokens from energy data |
-| **gridtokenx_trading** | Manage order book and settlements |
-| **gridtokenx_registry** | Track prosumers and smart meters |
-| **gridtokenx_governance** | Handle DAO proposals and voting |
-| **gridtokenx_oracle** | Validate external energy data |
+| Program | Function | หน้าที่ |
+|---------|----------|----------|
+| **gridtokenx_minting** | Create REC tokens from energy data | สร้างโทเค็น REC จากข้อมูลพลังงาน |
+| **gridtokenx_trading** | Manage order book and settlements | จัดการระบบซื้อขายและการชำระเงิน |
+| **gridtokenx_registry** | Track prosumers and smart meters | ติดตามผู้ผลิตไฟฟ้าและมิเตอร์อัจฉริยะ |
+| **gridtokenx_governance** | Handle DAO proposals and voting | จัดการข้อเสนอและการโหวตในระบบ |
+| **gridtokenx_oracle** | Validate external energy data | ตรวจสอบความถูกต้องของข้อมูลพลังงาน |
 
 ### 2. API Gateway Features
 
@@ -93,16 +93,16 @@ GridTokenX คือแพลตฟอร์มซื้อขายใบรั
 
 ### 3. PoA Layer 2 Benefits
 
-- **Block Time**: 400ms
-- **Throughput**: 10,000+ TPS
-- **Finality**: Instant
-- **Cost**: Minimal fees
+- **Block Time**: 400ms (เวลาสร้างบล็อก)
+- **Throughput**: 10,000+ TPS (ธุรกรรมต่อวินาที)
+- **Finality**: Instant (ความสมบูรณ์ทันที)
+- **Cost**: Minimal fees (ค่าธรรมเนียมต่ำมาก)
 
 ---
 
 ## 🔄 Workflow Diagrams | แผนภาพการทำงาน
 
-### Telemetry → Minting Flow
+### Telemetry → Minting Flow | ขั้นตอนการส่งข้อมูลและการสร้างโทเค็น
 
 ```
 Smart Meter → API Gateway → Validation → Anchor Program → REC Token
@@ -110,7 +110,7 @@ Smart Meter → API Gateway → Validation → Anchor Program → REC Token
      └── kWh ─────┴── Check ───┴── Mint ──────┴── Wallet ────┘
 ```
 
-### Trading Cycle
+### Trading Cycle | วงจรการซื้อขาย
 
 ```
 Buyer ──┬── Place Order ──┬── Match ──┬── Settle ──┬── Complete
@@ -122,16 +122,16 @@ Seller ─┴─────────────────┴────�
 
 ## 🧪 Testing Results | ผลการทดสอบ
 
-### Performance Benchmarks
+### Performance Benchmarks | ผลการทดสอบประสิทธิภาพ
 
-| Metric | Target | Achieved |
-|--------|--------|----------|
-| Mint Latency | < 500ms | **320ms** ✅ |
-| Trade Settlement | < 1s | **850ms** ✅ |
-| API Response | < 100ms | **45ms** ✅ |
-| Throughput | 1000 TPS | **1,200 TPS** ✅ |
+| Metric | Target | Achieved | ตัวชี้วัด |
+|--------|--------|----------|---------|
+| Mint Latency | < 500ms | **320ms** ✅ | ความล่าช้าในการ Mint |
+| Trade Settlement | < 1s | **850ms** ✅ | การชำระบัญชีการค้า |
+| API Response | < 100ms | **45ms** ✅ | การตอบสนอง API |
+| Throughput | 1000 TPS | **1,200 TPS** ✅ | ปริมาณธุรกรรม |
 
-### Test Coverage
+### Test Coverage | ความครอบคลุมของการทดสอบ
 
 - **Unit Tests**: 89% coverage
 - **Integration Tests**: 45 scenarios

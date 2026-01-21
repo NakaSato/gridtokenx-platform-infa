@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO meter_registry (\n                meter_serial, meter_key_hash, verification_method,\n                verification_status, user_id, manufacturer, meter_type,\n                location_address, verification_proof, verified_at\n            )\n            VALUES ($1, $2, $3, 'verified', $4, $5, $6, $7, $8, NOW())\n            RETURNING id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "16e6338689c9516d64e8edf92b6f49bf285259cd7506283068092f238e695d7d"
+}

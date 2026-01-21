@@ -1,0 +1,39 @@
+@startuml
+!include <C4/C4_Container>
+!include <tupadr3/devicons/react>
+!include <tupadr3/devicons/rust>
+!include <tupadr3/devicons/postgresql>
+!include <tupadr3/font-awesome-5/coins>
+!include <tupadr3/font-awesome-5/user>
+
+skinparam defaultFontName "Helvetica Neue"
+
+LAYOUT_LEFT_RIGHT()
+
+Person(user, "Prosumer", "Energy producer & consumer", $sprite="user")
+
+System_Boundary(platform, "GridTokenX Platform") {
+
+    Container(trading_app, "Trading Dashboard", "Next.js", "Trading interface & wallet management", $sprite="react")
+    
+    Container(gateway, "API Gateway", "Rust, Axum", "Matching engine & orchestration", $sprite="rust")
+    
+    ContainerDb(db, "Database", "PostgreSQL", "Orders & user data", $sprite="postgresql")
+    
+    Container(blockchain, "Solana Network", "Anchor, PoA", "On-chain registry & energy tokens", $sprite="coins")
+}
+
+' Relationships
+Rel(user, trading_app, "Trades energy", "HTTPS")
+Rel(trading_app, gateway, "API calls", "REST/WSS")
+Rel(trading_app, blockchain, "Signs Tx", "RPC")
+Rel(gateway, db, "Persists", "SQL")
+Rel(gateway, blockchain, "Settles", "RPC")
+
+' Layout hints
+Lay_D(user, trading_app)
+Lay_R(trading_app, gateway)
+Lay_D(gateway, db)
+Lay_U(gateway, blockchain)
+
+@enduml

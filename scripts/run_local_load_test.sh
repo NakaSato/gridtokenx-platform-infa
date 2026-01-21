@@ -25,7 +25,7 @@ export SOLANA_RPC_URL=http://localhost:8899
 export RUST_LOG=info
 
 # Build first to see errors clearly
-cd ../gridtokenx-apigateway
+cd gridtokenx-apigateway
 cargo build --bin api-gateway
 nohup cargo run --bin api-gateway > ../api_gateway_local.log 2>&1 &
 API_PID=$!

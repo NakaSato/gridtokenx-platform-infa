@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) as count, zone_id FROM meters WHERE serial_number = $1 GROUP BY zone_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "zone_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      true
+    ]
+  },
+  "hash": "8db84fb9ca4da6b3d38cf1f7c88c74a5dc829d20aa665cd87c712f085fc21937"
+}

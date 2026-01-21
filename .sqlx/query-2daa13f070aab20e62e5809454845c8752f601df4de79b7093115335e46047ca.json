@@ -1,0 +1,63 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO user_wallets (id, user_id, wallet_address, label, is_primary, verified, created_at)\n        VALUES ($1, $2, $3, $4, $5, false, $6)\n        RETURNING id, user_id, wallet_address, label, \n                  is_primary as \"is_primary!\", verified as \"verified!\",\n                  created_at as \"created_at!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "wallet_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "label",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_primary!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "verified!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Bool",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "2daa13f070aab20e62e5809454845c8752f601df4de79b7093115335e46047ca"
+}

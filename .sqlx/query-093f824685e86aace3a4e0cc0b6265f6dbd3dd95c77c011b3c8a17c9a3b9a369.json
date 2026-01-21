@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COALESCE(AVG(price_per_kwh), 0) as \"avg_price!\"\n            FROM trading_orders\n            WHERE status = 'filled' \n              AND filled_at > NOW() - INTERVAL '1 hour'\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "avg_price!",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "093f824685e86aace3a4e0cc0b6265f6dbd3dd95c77c011b3c8a17c9a3b9a369"
+}

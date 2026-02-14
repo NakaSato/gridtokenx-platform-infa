@@ -14,7 +14,7 @@
     <div class="space-y-2 text-sm">
       <div class="flex flex-col">
         <span class="text-[10px] opacity-50 uppercase tracking-wider">Core Framework</span>
-        <span class="font-mono text-cyan-100/90 text-xs">Next.js 15 (App Router) + React 19</span>
+        <span class="font-mono text-cyan-100/90 text-xs">Next.js 16 (App Router) + React 19</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[10px] opacity-50 uppercase tracking-wider">Styling & UI</span>
@@ -43,7 +43,7 @@
       </div>
       <div class="flex flex-col">
         <span class="text-[10px] opacity-50 uppercase tracking-wider">Data & Events</span>
-        <span class="font-mono text-orange-100/90 text-xs">Postgres 16 + Redis 7 + Kafka</span>
+        <span class="font-mono text-orange-100/90 text-xs">Postgres 17 + Redis 7 + Kafka (KRaft)</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[10px] opacity-50 uppercase tracking-wider">Ops & Auth</span>

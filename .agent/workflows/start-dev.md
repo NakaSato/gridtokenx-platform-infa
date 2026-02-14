@@ -36,7 +36,7 @@ This workflow starts all required services for local development.
 
 ## Notes
 - The script creates a fresh SPL token on each run
-- Dev wallet keypair is at `gridtokenx-apigateway/dev-wallet.json`
+- Dev wallet keypair is at `gridtokenx-apigateway/dev-wallet.json` (or repo root `dev-wallet.json` when used by Docker)
 - Token mint address is automatically updated in .env files
 - **New Terminal tabs** will be opened for API Gateway, Simulator, and Trading UI
 - Use `./scripts/stop-dev.sh` to stop background services (Validator, Postgres, Redis)

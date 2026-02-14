@@ -48,15 +48,14 @@ prod:
 	@echo "  Explorer:      http://localhost:3000"
 	@echo "  Trading:       http://localhost:3001"
 	@echo "  Website:       http://localhost:3002"
-	@echo "  API Gateway:   http://localhost:8080"
-	@echo "  Smart Meter:   http://localhost:8000/docs"
+	@echo "  API Gateway:   http://localhost:4000"
+	@echo "  Smart Meter:   http://localhost:8080/docs"
+	@echo "  Dashboard:     http://localhost:5173"
 
 # Start services in development mode
 dev:
 	@echo "Starting GridTokenX platform in development mode..."
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
-	@echo ""
-	@echo "Development mode - hot reload enabled"
+	./scripts/start-dev.sh
 
 # Stop all services
 down:

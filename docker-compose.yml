@@ -103,15 +103,16 @@ services:
     container_name: gridtokenx-kafka
     ports:
       - "${KAFKA_PORT:-9092}:9092"
+      - "29092:29092"
     environment:
       TZ: ${TZ}
       # KRaft Configuration (No Zookeeper needed)
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://:9092,PLAINTEXT_HOST://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       # Topic Configuration
@@ -140,8 +141,8 @@ services:
   # API Gateway (Rust/Axum)
   apigateway:
     build:
-      context: .
-      dockerfile: gridtokenx-apigateway/Dockerfile
+      context: ./gridtokenx-apigateway
+      dockerfile: Dockerfile
     container_name: gridtokenx-apigateway
     ports:
       - "${APIGATEWAY_PORT}:4000"
@@ -326,90 +327,6 @@ services:
       - gridtokenx-network
     restart: unless-stopped
 
-  # Smart Meter Simulator (Python/FastAPI)
-  smartmeter-simulator:
-    build:
-      context: ./gridtokenx-smartmeter-simulator
-      dockerfile: Dockerfile
-    container_name: gridtokenx-smartmeter
-    ports:
-      - "${SMARTMETER_PORT}:8080"
-    environment:
-      # General Configuration
-      TZ: ${TZ}
-
-      # Database Configuration
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-
-      # API Gateway Configuration
-      API_GATEWAY_URL: ${API_GATEWAY_URL}
-      API_KEY: ${API_KEY}
-
-      # InfluxDB Configuration
-      INFLUXDB_URL: ${INFLUXDB_URL}
-      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
-      INFLUXDB_ORG: ${INFLUXDB_ORG}
-      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
-
-      # Kafka Configuration
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
-      KAFKA_TOPIC: ${KAFKA_TOPIC:-meter-readings}
-      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
-
-      # Simulation Configuration
-      SIMULATION_INTERVAL: ${SIMULATION_INTERVAL:-30}
-      NUM_METERS: ${NUM_METERS:-20}
-      SIMULATION_SPEED_MULTIPLIER: ${SIMULATION_SPEED_MULTIPLIER:-1}
-
-      # Energy Configuration
-      SOLAR_PANEL_EFFICIENCY_MIN: ${SOLAR_PANEL_EFFICIENCY_MIN:-0.15}
-      SOLAR_PANEL_EFFICIENCY_MAX: ${SOLAR_PANEL_EFFICIENCY_MAX:-0.22}
-      BASE_GENERATION_MIN: ${BASE_GENERATION_MIN:-2.0}
-      BASE_GENERATION_MAX: ${BASE_GENERATION_MAX:-10.0}
-      BASE_CONSUMPTION_MIN: ${BASE_CONSUMPTION_MIN:-1.0}
-      BASE_CONSUMPTION_MAX: ${BASE_CONSUMPTION_MAX:-5.0}
-      NOISE_FACTOR_MIN: ${NOISE_FACTOR_MIN:-0.05}
-      NOISE_FACTOR_MAX: ${NOISE_FACTOR_MAX:-0.15}
-
-      # P2P Trading Configuration
-      MIN_SELL_PRICE: ${MIN_SELL_PRICE:-2.5}
-      MAX_SELL_PRICE: ${MAX_SELL_PRICE:-4.5}
-      MIN_BUY_PRICE: ${MIN_BUY_PRICE:-2.0}
-      MAX_BUY_PRICE: ${MAX_BUY_PRICE:-4.0}
-      GRID_FEED_IN_RATE: ${GRID_FEED_IN_RATE:-2.2}
-      GRID_PURCHASE_RATE: ${GRID_PURCHASE_RATE:-4.5}
-
-      # Weather Simulation
-      WEATHER_SUNNY_WEIGHT: ${WEATHER_SUNNY_WEIGHT:-0.4}
-      WEATHER_PARTLY_CLOUDY_WEIGHT: ${WEATHER_PARTLY_CLOUDY_WEIGHT:-0.3}
-      WEATHER_CLOUDY_WEIGHT: ${WEATHER_CLOUDY_WEIGHT:-0.15}
-      WEATHER_OVERCAST_WEIGHT: ${WEATHER_OVERCAST_WEIGHT:-0.1}
-      WEATHER_RAINY_WEIGHT: ${WEATHER_RAINY_WEIGHT:-0.05}
-      WEATHER_CHANGE_FREQUENCY: ${WEATHER_CHANGE_FREQUENCY:-5}
-      RANDOM_SEED: ${RANDOM_SEED:-42}
-
-      # Battery Storage Configuration
-      BATTERY_CAPACITY_MIN: ${BATTERY_CAPACITY_MIN:-5.0}
-      BATTERY_CAPACITY_MAX: ${BATTERY_CAPACITY_MAX:-20.0}
-      BATTERY_EFFICIENCY_MIN: ${BATTERY_EFFICIENCY_MIN:-0.85}
-      BATTERY_EFFICIENCY_MAX: ${BATTERY_EFFICIENCY_MAX:-0.95}
-
-      # Meter Type Distribution
-      SOLAR_PROSUMER_RATIO: ${SOLAR_PROSUMER_RATIO:-0.4}
-      GRID_CONSUMER_RATIO: ${GRID_CONSUMER_RATIO:-0.35}
-      HYBRID_PROSUMER_RATIO: ${HYBRID_PROSUMER_RATIO:-0.15}
-      BATTERY_STORAGE_RATIO: ${BATTERY_STORAGE_RATIO:-0.1}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      apigateway:
-        condition: service_started
-      kafka:
-        condition: service_healthy
-    networks:
-      - gridtokenx-network
-    restart: unless-stopped
-
   # Prometheus (Metrics Collection)
   prometheus:
     image: prom/prometheus:latest
@@ -464,6 +381,52 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Smart Meter Simulator (Python/FastAPI)
+  smartmeter-simulator:
+    build:
+      context: ./gridtokenx-smartmeter-simulator
+      dockerfile: Dockerfile
+    container_name: gridtokenx-smartmeter-simulator
+    ports:
+      - "${SMARTMETER_PORT:-8082}:8080"
+    environment:
+      TZ: ${TZ}
+      PORT: 8080 # Internally 8080, externally mapped to ${SMARTMETER_PORT} (8082)
+      LOG_LEVEL: ${LOG_LEVEL}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+      INFLUXDB_ORG: ${INFLUXDB_ORG}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      API_GATEWAY_URL: http://apigateway:4000
+    depends_on:
+      kafka:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./gridtokenx-smartmeter-simulator/data:/app/data
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # Smart Meter Simulator UI (React/Vite)
+  smartmeter-ui:
+    build:
+      context: ./gridtokenx-smartmeter-simulator/ui
+      dockerfile: Dockerfile
+    container_name: gridtokenx-smartmeter-ui
+    ports:
+      - "5173:80"
+    depends_on:
+      - smartmeter-simulator
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
 
 networks:
   gridtokenx-network:

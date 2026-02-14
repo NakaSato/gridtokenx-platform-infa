@@ -64,11 +64,11 @@ deploy_program() {
 }
 
 # Values from Anchor.toml / Source of Truth
-deploy_program "registry" "EgpmmYPFDAX8QfawUEFissBXi3yG6AapoxNfB6KdGtBQ"
-deploy_program "energy_token" "G8dC1NwdDiMhfrnPwkf9dMaR2AgrnFXcjWcepyGSHTfA"
-deploy_program "trading" "CrfC5coUm2ty6DphLBFhAmr8m1AMutf8KTW2JYS38Z5J"
-deploy_program "oracle" "4Agkm8isGD6xDegsfoFzWN5Xp5WLVoqJyPDQLRsjh85u"
-deploy_program "governance" "3d1BQT3EiwbspkD8HYKAnyLvKjs5kZwSbRBWwS5NHof9"
+deploy_program "registry" "CXXRVpEwyd2ch7eo425mtaBfr2Yi1825Nm6yik2NEWqR"
+deploy_program "energy_token" "5DJCWKo5cXt3PXRsrpH1xixra4wXWbNzxZ1p4FHqSxvi"
+deploy_program "trading" "8S2e2p4ghqMJuzTz5AkAKSka7jqsjgBH7eWDcCHzXPND"
+deploy_program "oracle" "EkcPD2YEXhpo1J73UX9EJNnjV2uuFS8KXMVLx9ybqnhU"
+deploy_program "governance" "8bNpJqZoqqUWKu55VWhR8LWS66BX7NPpwgYBAKhBzu2L"
 
 echo -e "${GREEN}4. Initialization Complete!${NC}"
 echo "You can now run 'docker-compose up' to start the application stack."

@@ -12,6 +12,17 @@ It acts as a bridge between physical energy infrastructure and decentralized fin
 *   Trustless market settlement via Smart Contracts.
 *   High-concurrency data orchestration for grid management.
 
+### 1.1 User Journey Maps
+
+**Journey 1: Onboarding & KYC**
+`Visitor` → `Register (Next.js)` → `Email Verification (Mailpit)` → `Wallet Link (Phantom)` → `KYC Approval (Admin)` → **`Authorized Prosumer`**
+
+**Journey 2: Meter Registration**
+`Prosumer` → `Register Meter (UI)` → `Metadata Submit (API)` → `Hardware Handshake (Simulator)` → `Oracle Verification` → **`Active Meter`**
+
+**Journey 3: Trading & Settlement**
+`Meter` → `Telemetry (Kafka)` → `Accumulator (Redis)` → `Minting (Registry)` → `Order Creation (Trading Program)` → `Matching Engine` → **`Atomic Swap`**
+
 ---
 
 ## 2. High-Level Architecture Overview
@@ -19,7 +30,7 @@ It acts as a bridge between physical energy infrastructure and decentralized fin
 The platform is designed as a **Hybrid Architecture** combining:
 1.  **Off-Chain Orchestration**: High-performance Rust backend for data aggregation, telemetry, and API management.
 2.  **On-Chain Settlement**: Solana Anchor programs for immutable state, atomic changes, and value transfer.
-3.  **Client Interfaces**: Next.js web applications for users and administrators.
+3.  **Client Interfaces**: Next.js web applications—Trading UI (`gridtokenx-trading`), Admin Portal (`gridtokenx-admin`), and Anchor Dashboard (`anchor-dashboard`, Vite/React for IDL tooling).
 
 ---
 
@@ -28,12 +39,19 @@ The platform is designed as a **Hybrid Architecture** combining:
 **Framework**: Next.js / React
 **Role**: Provides the interface for Prosumers (Producers/Consumers) and Admins.
 
-### Key Components:
+### 3.1 Prosumer Interface (`gridtokenx-trading`)
 *   **Trading Dashboard**: Real-time energy trading UI.
 *   **Wallet Adapter**: Integration with Solana wallets (Phantom, Solflare) for transaction signing.
 *   **Visualization**: Mapbox GL for geospatial grid topology.
 
-### Protocols:
+### 3.2 Admin Portal (`gridtokenx-admin`)
+Built with Next.js 16 and TailwindCSS, providing distinct views for grid operators:
+*   **Grid Monitor**: Real-time health map of all zones, showing active voltage/frequency violations.
+*   **Market Ops**: Order book visualization, circuit breaker controls, and fee parameter adjustment.
+*   **User Management**: KYC approval queues and RBAC (Role-Based Access Control) configuration.
+*   **Audit Logger**: Immutable log viewer for all critical system actions.
+
+### 3.3 Protocols
 *   **HTTP/WebSocket**: Communication with API Gateway.
 *   **JSON RPC / WSS**: Direct interaction with Solana L1 RPC nodes for state queries.
 
@@ -73,13 +91,14 @@ The platform is designed as a **Hybrid Architecture** combining:
 ## 6. Data & Simulator Layer
 
 **Framework**: Python (FastAPI)
-**Role**: Generates high-fidelity simulated grid telemetry to mirror real-world scenarios.
+**Role**: Generates high-fidelity simulated grid telemetry to mirror real-world scenarios.  
+**Component**: `gridtokenx-smartmeter-simulator` (Docker service name: `smartmeter-simulator`, port 8080).
 
 ### Workflow:
 1.  **Generation**: Simulator generates energy readings.
-2.  **Ingestion**: Readings are emitted to **Kafka** topics.
+2.  **Ingestion**: Readings are emitted to **Kafka** topic `meter-readings` (KRaft, 3 partitions default).
 3.  **Persistence**: Metrics written to **InfluxDB** for analytics.
-4.  **Persistance**: Configuration stored in **PostgreSQL**.
+4.  **Persistence**: Configuration stored in **PostgreSQL**.
 5.  **Control**: Controlled via the **API Gateway** (Rust).
 
 ---

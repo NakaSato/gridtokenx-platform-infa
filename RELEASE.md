@@ -9,7 +9,7 @@ This release marks the successful verification of the GridTokenX platform's **Sc
 1.  **Scalability Verification**: Validated support for **1,000 active smart meters** with real-time data ingestion.
     -   Average Throughput: ~2,111 tpmC (Transactions Per Minute Type C)
     -   System Stability: >99.78% success rate under load.
-2.  **Full-Stack Integration**: Seamless data flow from Smart Meter Simulators (IoT) → API Gateway (Rust) → Trading Engine (Next.js) → Solana Blockchain.
+2.  **Full-Stack Integration**: Seamless data flow from Smart Meter Simulator (`smartmeter-simulator`) → API Gateway (Rust) → Trading UI / Admin Portal (Next.js) → Solana Blockchain.
 3.  **Reliability Improvements**: Fixed critical data integrity issues (Foreign Key constraints) and implemented deterministic load test data generation.
 4.  **Academic Validation**: Performance results documented in `performance_analysis_thai.tex` with empirical "Trust Premium" calculations.
 
@@ -33,8 +33,10 @@ docker-compose down -v
 ./scripts/run_local_load_test.sh
 
 # 3. Start Frontend (in a separate terminal)
-cd gridtokenx-trading
-bun dev
+# Trading UI:
+cd gridtokenx-trading && bun dev
+# Or Admin Portal:
+cd gridtokenx-admin && bun run dev
 ```
 
 ### 3. Verification Credentials (Demo User)
@@ -46,8 +48,8 @@ For manual UI verification, use the pre-generated Demo User:
 -   **Meter ID**: `MEA-DEMO-2026` (Solar Prosumer)
 
 ### 4. Known Limitations
--   **Simulator**: Currently runs as a single process; might need sharding for >5k meters.
--   **Solana Localnet**: RPC endpoint `localhost:8899` must be reachable; ensure `solana-test-validator` is running if testing on-chain settlement strictly.
+-   **Simulator**: Service name `smartmeter-simulator`; currently runs as a single process; might need sharding for >5k meters.
+-   **Solana Localnet**: RPC endpoint `localhost:8899` must be reachable; ensure `solana-test-validator` is running (e.g. via `./scripts/start-dev.sh`) if testing on-chain settlement strictly.
 
 ## Documentation
 -   **Task Tracking**: See `task.md` for completed item checklist.

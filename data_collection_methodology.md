@@ -6,53 +6,55 @@
 ## 1. Overview
 The **GridTokenX** platform employs a high-fidelity simulation and ingestion pipeline to model realistic energy markets. This document details the end-to-end data flow, from physics-based generation to asynchronous processing and storage.
 
-**Key Characteristics:**
-*   **Physics-First Approach**: Grid telemetry is derived from solving actual power flow equations, not synthetic random data.
-*   **Event-Driven Architecture**: Kafka-based streaming decouples generation from processing.
-*   **Horizontal Scalability**: Worker pools handle variable load with auto-retry mechanisms.
-*   **Multi-Tier Storage**: Hot (Redis), Warm (PostgreSQL), Cold (InfluxDB) for optimized query patterns.
-
 ---
 
 ## 2. Data Generation (Simulation Layer)
 **Component**: `gridtokenx-smartmeter-simulator`  
 **Framework**: Python / FastAPI / Pandapower
 
-The platform does not rely on random noise. Instead, it uses **Physics-based Simulation** to generate credible telemetry data that mirrors real-world grid behavior.
+The platform does not rely on random noise. Instead, it uses **Pandapower** to solve actual power flow equations.
 
-### 2.1 Physics Engine
-The core engine (`PhysicsSimulationEngine`) leverages the **Pandapower** library to solve power flow equations. This ensures:
-*   **Kirchhoff's Laws**: Voltage and current follow physical grid constraints.
-*   **Technical Losses**: Line losses and transformer inefficiencies are calculated dynamically.
-*   **Power Quality**: Simulates Total Harmonic Distortion (THD) and power factor deviations.
-*   **Grid Constraints**: Respects voltage limits (0.95-1.05 p.u.) and thermal line ratings.
+### 2.1 Physics Engine Implementation
+The core engine (`PhysicsSimulationEngine`) calculates voltage drops and line losses based on grid topology.
 
-### 2.2 Consumer Profiles & Templates
-Data generation is driven by **Meter Templates** (`generators.py`) representing diverse grid participants:
-*   **Residential**: Variable load profiles (Small/Medium/Large) with optional rooftop solar (3-10 kW).
-*   **Commercial**: Optimized for daylight hours (Office/Retail) with battery storage systems (50-100 kWh).
-*   **Industrial**: High-load profiles with shift-based operations (Light/Heavy/24h) supporting 24/7 manufacturing.
-
-**Template Configuration:**
+**Simulation Loop (Python):**
 ```python
-MeterTemplateConfig:
-    - base_consumption_kwh: Hourly baseline (0.5 - 25.0 kWh)
-    - solar_capacity_kw: Rooftop PV rating (3.0 - 50.0 kW)
-    - battery_capacity_kwh: Energy storage (5.0 - 100.0 kWh)
-    - peak_multiplier: Load spike factor (1.4 - 2.0x)
-    - weekend_factor: Occupancy adjustment (0.2 - 1.5x)
+import pandapower as pp
+import pandapower.networks as pn
+
+def step_simulation(self, timestamp):
+    # 1. Initialize Base Network (e.g., standard rural grid)
+    if self.net is None:
+        self.net = pn.create_kerber_landnetz_freileitung_1()
+
+    # 2. Update Loads from Meter Profiles
+    for meter in self.active_meters:
+        # Convert kW to MW for pandapower
+        p_mw = meter.get_current_consumption(timestamp) / 1000.0
+        # Update load at specific bus index
+        self.net.load.at[meter.bus_idx, 'p_mw'] = p_mw
+
+    # 3. Solve Power Flow (Newton-Raphson)
+    try:
+        pp.runpp(self.net, algorithm='nr', max_iteration=50)
+    except pp.LoadflowNotConverged:
+        self.handle_divergence()
+
+    # 4. Extract Physics Metrics
+    results = []
+    for meter in self.active_meters:
+        # Voltage in per-unit (p.u.)
+        vm_pu = self.net.res_bus.vm_pu[meter.bus_idx]
+        # Line loading percentage
+        loading = self.net.res_line.loading_percent.max()
+        
+        results.append({
+            "meter_id": meter.id,
+            "voltage": vm_pu * 230.0, # Convert to Volts
+            "grid_strain": loading
+        })
+    return results
 ```
-
-### 2.3 Environmental Factors
-*   **Seasonality**: Adjusts for Thailand's climate (Hot, Rainy, Cool), directly impacting solar PV efficiency and air conditioning loads.
-*   **Cloud Cover**: Simulates solar intermittency with variable irradiance factors (0.3 - 1.0).
-*   **Temperature**: Impacts battery efficiency and cooling loads.
-
-### 2.4 Meter State Management
-Each `SmartMeter` instance maintains persistent state using **Exponential Moving Averages (EMA)** for smooth transitions:
-*   **Electrical Parameters**: Voltage (240V ± 10%), Frequency (50Hz ± 0.5Hz), Power Factor (0.85-0.99).
-*   **Energy Accumulators**: Lifetime consumption/generation totals (initialized with realistic baselines).
-*   **Battery State**: Charge level with realistic charge/discharge curves.
 
 ---
 
@@ -61,70 +63,7 @@ Each `SmartMeter` instance maintains persistent state using **Exponential Moving
 **Protocol**: Apache Kafka (Streaming)
 
 ### 3.1 Streaming Architecture
-The simulator streams telemetry readings to **Kafka** topics (`meter-readings`) to decouple generation from processing. This architectural pattern provides:
-*   **Decoupling**: Simulator and API Gateway operate independently with separate failure domains.
-*   **Buffering**: Kafka acts as a distributed commit log, persisting messages for replay.
-*   **Scalability**: Horizontal partitioning allows multiple consumers to process in parallel.
-
-### 3.2 Kafka Consumer Service (`consumer.rs`)
-A high-performance Rust consumer handles the ingress of massive telemetry streams with sub-millisecond latency.
-
-**Features:**
-*   **Deserialization**: Validates incoming JSON payloads against the `KafkaMeterReading` schema.
-*   **Buffering**: Instead of processing synchronously, validated readings are pushed to a **Redis List** (`queue:meter_readings`). This acts as a shock absorber during traffic spikes.
-*   **Error Handling**: Malformed messages are logged and moved to a dead-letter queue.
-
-### 3.3 Data Schema
-
-**Kafka Message Schema (`KafkaMeterReading`):**
-```rust
-{
-  "meter_serial": String,           // Unique identifier (e.g., "MEA-RES-001")
-  "meter_id": String (optional),    // Alternative identifier
-  "kwh": f64,                        // Total accumulated energy (kWh)
-  "timestamp": ISO8601 String,       // Reading timestamp
-  
-  // Energy Metrics
-  "energy_generated": f64 (optional),  // Instantaneous generation (kWh)
-  "energy_consumed": f64 (optional),   // Instantaneous consumption (kWh)
-  "power_generated": f64 (optional),   // Real-time generation (kW)
-  "power_consumed": f64 (optional),    // Real-time consumption (kW)
-  
-  // Electrical Quality
-  "voltage": f64 (optional),           // Grid voltage (V)
-  "current": f64 (optional),           // Current draw (A)
-  "frequency": f64 (optional),         // Grid frequency (Hz)
-  "power_factor": f64 (optional),      // Power factor (0-1)
-  "thd_voltage": f64 (optional),       // Voltage THD (%)
-  "thd_current": f64 (optional),       // Current THD (%)
-  
-  // Geospatial & Zone
-  "latitude": f64 (optional),          // GPS latitude
-  "longitude": f64 (optional),         // GPS longitude
-  "zone_id": i32 (optional),           // Microgrid zone ID
-  
-  // Battery State
-  "battery_level": f64 (optional)      // State of charge (0-100%)
-}
-```
-
-**Sample Payload:**
-```json
-{
-  "meter_serial": "MEA-RES-001",
-  "kwh": 1254.32,
-  "energy_generated": 3.2,
-  "energy_consumed": 1.8,
-  "voltage": 220.5,
-  "current": 5.4,
-  "frequency": 50.01,
-  "power_factor": 0.95,
-  "latitude": 13.7563,
-  "longitude": 100.5018,
-  "zone_id": 3,
-  "timestamp": "2026-01-27T12:00:00Z"
-}
-```
+The simulator (`smartmeter-simulator` in Docker) streams telemetry readings to **Kafka** topic `meter-readings`.
 
 ---
 
@@ -132,113 +71,86 @@ A high-performance Rust consumer handles the ingress of massive telemetry stream
 **Component**: `gridtokenx-apigateway`  
 **Mechanism**: Asynchronous Workers (Redis Queue)
 
-### 4.1 Reading Processor Service (`reading_processor.rs`)
-A dedicated pool of background workers (Rust/Tokio) continually polls Redis for new tasks. This architecture ensures the API remains responsive even under heavy load.
+### 4.1 Worker State Machine
+Each reading flows through a strict state machine to ensure data integrity before persistence.
 
-**Worker Pool Configuration:**
-*   **Concurrency**: 4-8 workers (configurable via `READING_PROCESSOR_WORKERS`).
-*   **Queue Strategy**: BRPOP (Blocking Right Pop) with 1-second timeout to minimize CPU spinning.
-*   **Resource Isolation**: Each worker runs in a separate Tokio task with independent database connections.
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> Ingested: Kafka Consumer
+    
+    state ValidationQueue {
+        Ingested --> Validating
+        Validating --> Rejected: Schema/Range Error
+        Validating --> Validated: Checks Pass
+    }
+    
+    state EnrichmentQueue {
+        Validated --> Enriching
+        Enriching --> Enriched: Add CO2/Cost/Zone
+    }
+
+    state PersistenceLayer {
+        Enriched --> Persisting
+        Persisting --> Committed: Written to DB
+        Persisting --> RetryQueue: DB Timeout
+    }
+    
+    RetryQueue --> Persisting: Retry (Max 3)
+    RetryQueue --> DLQ: Max Retries Exceeded
+    Rejected --> DLQ: Dead Letter Queue
+    
+    Committed --> [*]
+```
 
 ### 4.2 Processing Pipeline
 Each reading undergoes a multi-stage validation and enrichment process:
 
 **Stage 1: De-queue**
 *   Worker pops a `ReadingTask` from Redis (`queue:meter_readings`).
-*   Task includes: `serial`, `params`, `request`, `retry_count`.
 
 **Stage 2: Validation**
 *   **Serial Number Lookup**: Verifies meter exists in PostgreSQL.
-*   **Ownership Check**: Confirms meter belongs to the requesting user.
-*   **Data Anomaly Detection**:
-    *   Voltage range: 200V - 260V (±10% of 230V nominal).
+*   **Anomaly Detection**:
+    *   Voltage range: 200V - 260V.
     *   Frequency range: 49.5Hz - 50.5Hz.
-    *   Power factor: 0.7 - 1.0 (lagging/unity).
-    *   Negative generation/consumption flagged.
 
 **Stage 3: Enrichment**
 *   **Surplus/Deficit Calculation**: `surplus = generation - consumption`.
 *   **CO₂ Savings Estimation**: Based on grid emission factors (0.5 kgCO₂/kWh).
-*   **Zone Assignment**: Attaches microgrid zone ID for topology awareness.
 
 **Stage 4: Persistence**
-*   **Hot Storage (Redis)**:
-    *   Key: `meter:{serial}:latest`
-    *   TTL: 60 seconds (real-time cache).
-    *   Stores: Full reading JSON for instant API responses.
-*   **Warm Storage (PostgreSQL)**:
-    *   Table: `meter_readings`
-    *   Indexed on: `(meter_id, timestamp DESC)`.
-    *   Used for: Historical queries, analytics, billing.
-*   **Cold Storage (InfluxDB)**:
-    *   Measurement: `energy_metrics`
-    *   Tags: `meter_serial`, `zone_id`, `meter_type`.
-    *   Fields: `voltage`, `current`, `power_factor`, `generation`, `consumption`.
-    *   Retention: 90 days (downsampled to hourly after 7 days).
-
-**Stage 5: Metric Tracking**
-*   **Prometheus Metrics**:
-    *   `meter_reading_total{status="success|failure"}`: Counter.
-    *   `meter_processing_duration_seconds`: Histogram.
-    *   `meter_processing_queue_depth`: Gauge.
-    *   `meter_reading_retries_total`: Counter.
-
-### 4.3 Reliability & Fault Tolerance
-The system implements multiple layers of reliability guarantees:
-
-**Retry Mechanism:**
-*   **Exponential Backoff**: `delay = 2^retry_count` seconds (2s, 4s, 8s).
-*   **Max Retries**: 3 attempts before escalation.
-*   **Idempotency**: Upsert operations prevent duplicate entries.
-
-**Dead Letter Queue (DLQ):**
-*   **Trigger**: Readings exceeding max retries.
-*   **Storage**: Redis list (`queue:dlq`).
-*   **Monitoring**: Alerts triggered if DLQ depth > 10.
-*   **Recovery**: Manual inspection + replay via admin dashboard.
-
-**Queue Monitoring:**
-*   **Depth Threshold**: Warning logged if `queue:meter_readings` > 1000 items.
-*   **Backpressure**: Kafka consumer pauses if Redis queue > 10,000 (prevents OOM).
-*   **Health Checks**: `/health` endpoint exposes queue depth and worker status.
-
-**Circuit Breaker (Database):**
-*   **Condition**: If PostgreSQL fails 3 consecutive queries.
-*   **Action**: Workers pause for 10 seconds, then retry connection.
-*   **Fallback**: Readings cached in Redis until DB recovers.
+*   **Hot Storage (Redis)**: Key `meter:{serial}:latest`; TTL 60s.
+*   **Warm Storage (PostgreSQL)**: Permanent record in `meter_readings`.
+*   **Cold Storage (InfluxDB)**: High-resolution metrics for analytics.
 
 ---
 
-## 5. Data Quality Assurance
+## 5. Data Lifecycle Management (Phase 7)
 
-### 5.1 Validation Rules
-| Field | Rule | Action on Violation |
-|-------|------|---------------------|
-| `voltage` | 200 - 260V | Log warning, store as-is |
-| `frequency` | 49.5 - 50.5 Hz | Log warning, store as-is |
-| `power_factor` | 0.7 - 1.0 | Reject if < 0.5 or > 1.0 |
-| `energy_*` | ≥ 0 | Reject negative values |
-| `timestamp` | Within ±5 min of now | Reject stale/future readings |
-| `meter_serial` | Exists in DB | Reject unknown meters |
+We implement a tiered approach to balance cost and performance:
 
-### 5.2 Data Integrity
-*   **Checksums**: Not currently implemented (roadmap item).
-*   **Digital Signatures**: Meter readings signed with Ed25519 keys (simulator-side).
-*   **Tamper Detection**: Blockchain anchoring planned for audit trails.
+| Tier | Storage | Content | Retention Policy | Purpose |
+|------|---------|---------|------------------|---------|
+| **Hot** | Redis | Latest reading JSON | 60 seconds (TTL) | Real-time dashboard updates |
+| **Warm** | PostgreSQL | Billing-grade readings | Infinite (Partitioned) | Monthly billing, user history |
+| **Cold** | InfluxDB | Raw telemetry (voltage, THD) | 90 days (1h aggregate after 7d) | Grid analytics, anomaly detection |
+| **Archive**| S3/Glacier | CSV dumps | 7 years | Regulatory compliance |
 
 ---
 
-## 6. Performance Characteristics
+## 6. Observability & Monitoring
 
-### 6.1 Throughput
-*   **Ingestion Rate**: 10,000 readings/second (Kafka consumer).
-*   **Processing Rate**: 2,500 readings/second (4-worker pool).
-*   **Latency (p99)**: < 50ms (Redis pop → DB write).
+### 6.1 Prometheus Metrics
 
-### 6.2 Storage Efficiency
-*   **PostgreSQL**: ~200 bytes/reading (compressed).
-*   **InfluxDB**: ~80 bytes/point (columnar storage).
-*   **Redis**: ~500 bytes/reading (includes metadata).
+The API Gateway exposes standard Prometheus metrics at `/metrics` for scraping by Grafana:
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `meter_reading_total` | Counter | Total readings processed | `status="success|failure"`, `reason` |
+| `meter_processing_duration_seconds` | Histogram | Time taken to process reading | `stage="validation|persistence"` |
+| `kafka_consumer_lag` | Gauge | Lag behind latest offset | `topic`, `partition` |
+| `influxdb_write_errors` | Counter | Failed writes to Influx | `error_type` |
 
 ---
 
@@ -287,13 +199,3 @@ The system implements multiple layers of reliability guarantees:
 │ (Cold: 90d) │
 └─────────────┘
 ```
-
----
-
-## 8. Future Enhancements
-
-1.  **ML-Based Anomaly Detection**: Train models on historical data to detect grid faults.
-2.  **Real-Time Aggregation**: Implement Kafka Streams for zone-level rollups.
-3.  **Blockchain Anchoring**: Merkle root of daily readings written to Solana for tamper-proof audit trails.
-4.  **Adaptive Backpressure**: Dynamic queue limits based on system load.
-5.  **Multi-Region Replication**: Geo-distributed Kafka clusters for disaster recovery.

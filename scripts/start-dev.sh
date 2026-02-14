@@ -160,36 +160,41 @@ echo -e "${GREEN}✅ Blockchain programs deployed${NC}"
 
 
 # ============================================================================
-# Step 6: Create Energy Token (Standard SPL Token)
+# Step 6: Initialize Blockchain Programs & Create Energy Token (Anchor Bootstrap)
 # ============================================================================
 echo ""
-echo -e "${YELLOW}🪙 Creating Energy Token (SPL Token)...${NC}"
-cd "$GATEWAY_DIR"
+echo -e "${YELLOW}🪙 Initializing Blockchain State & PDAs...${NC}"
 
-# Create a new SPL token with dev-wallet as mint authority (9 decimals)
-# Using Token-2022 with Permanent Delegate to allow authority to burn tokens from user wallets
-TOKEN_OUTPUT=$(spl-token create-token \
-    --program-2022 \
-    --enable-permanent-delegate \
-    --decimals 9 \
-    --fee-payer "$DEV_WALLET" \
-    --mint-authority "$DEV_WALLET" \
-    --url $RPC_URL 2>&1)
+# Run Anchor Bootstrap script to initialize Registry, Market, and Energy Token
+cd "$ANCHOR_DIR"
 
-# Extract the token address
-ENERGY_TOKEN_MINT=$(echo "$TOKEN_OUTPUT" | grep "Address:" | awk '{print $2}')
+# Set Anchor environment variables for scripts
+export ANCHOR_PROVIDER_URL="$RPC_URL"
+export ANCHOR_WALLET="$DEV_WALLET"
+
+pnpm ts-node scripts/bootstrap.ts
+
+# Get PDA addresses using get_pdas.ts
+echo -e "${YELLOW}🔍 Extracting PDA configuration...${NC}"
+PDA_CONFIG=$(pnpm ts-node scripts/get_pdas.ts)
+
+# Extract addresses using grep and awk
+ENERGY_TOKEN_MINT=$(echo "$PDA_CONFIG" | grep "ENERGY_TOKEN_MINT=" | cut -d'=' -f2)
+REGISTRY_PDA=$(echo "$PDA_CONFIG" | grep "REGISTRY_PDA=" | cut -d'=' -f2)
+MARKET_PDA=$(echo "$PDA_CONFIG" | grep "MARKET_PDA=" | cut -d'=' -f2)
 
 if [ -z "$ENERGY_TOKEN_MINT" ]; then
-    echo -e "${RED}Failed to create token. Output: $TOKEN_OUTPUT${NC}"
+    echo -e "${RED}Failed to derive PDA addresses. Output: $PDA_CONFIG${NC}"
     exit 1
 fi
 
-echo -e "${CYAN}  Token Mint: $ENERGY_TOKEN_MINT${NC}"
-echo -e "${CYAN}  Authority:  $DEV_PUBKEY${NC}"
-echo -e "${GREEN}✅ Energy Token created${NC}"
+echo -e "${CYAN}  Energy Mint: $ENERGY_TOKEN_MINT${NC}"
+echo -e "${CYAN}  Registry:    $REGISTRY_PDA${NC}"
+echo -e "${CYAN}  Market:      $MARKET_PDA${NC}"
+echo -e "${GREEN}✅ Blockchain state initialized${NC}"
 
 # ============================================================================
-# Step 7: Update .env files with token configuration
+# Step 7: Update .env files with derived configuration
 # ============================================================================
 echo ""
 echo -e "${YELLOW}📝 Updating environment configuration...${NC}"
@@ -199,6 +204,9 @@ update_env_file "$GATEWAY_DIR/.env" "ENERGY_TOKEN_MINT" "$ENERGY_TOKEN_MINT"
 update_env_file "$GATEWAY_DIR/.env" "SOLANA_RPC_URL" "$RPC_URL"
 update_env_file "$GATEWAY_DIR/.env" "SOLANA_WS_URL" "$WS_URL"
 update_env_file "$GATEWAY_DIR/.env" "AUTHORITY_WALLET_PATH" "dev-wallet.json"
+# Add extra derived IDs if needed by gateway
+update_env_file "$GATEWAY_DIR/.env" "REGISTRY_PDA" "$REGISTRY_PDA"
+update_env_file "$GATEWAY_DIR/.env" "TRADING_MARKET_PDA" "$MARKET_PDA"
 
 # Update project root .env
 update_env_file "$PROJECT_ROOT/.env" "ENERGY_TOKEN_MINT" "$ENERGY_TOKEN_MINT"
@@ -209,6 +217,7 @@ update_env_file "$PROJECT_ROOT/.env" "SOLANA_WS_URL" "$WS_URL"
 TRADING_ENV="$PROJECT_ROOT/gridtokenx-trading/.env"
 if [ -f "$TRADING_ENV" ]; then
     update_env_file "$TRADING_ENV" "NEXT_PUBLIC_ENERGY_TOKEN_MINT" "$ENERGY_TOKEN_MINT"
+    update_env_file "$TRADING_ENV" "NEXT_PUBLIC_SOLANA_RPC_URL" "$RPC_URL"
 fi
 
 echo -e "${GREEN}✅ Environment configured${NC}"
@@ -221,9 +230,10 @@ echo ""
 echo -e "${YELLOW}🚀 Launching application services...${NC}"
 
 # Check for node_modules in frontend projects
-if [ ! -d "$PROJECT_ROOT/gridtokenx-admin/node_modules" ]; then
-    echo -e "${RED}Error: gridtokenx-admin/node_modules missing. Please run 'bun install' or 'bun install' in gridtokenx-admin.${NC}"
-    exit 1
+if [ -d "$PROJECT_ROOT/gridtokenx-admin" ]; then
+    if [ ! -d "$PROJECT_ROOT/gridtokenx-admin/node_modules" ]; then
+        echo -e "${YELLOW}Warning: gridtokenx-admin/node_modules missing. Skipping Admin UI.${NC}"
+    fi
 fi
 if [ ! -d "$PROJECT_ROOT/gridtokenx-trading/node_modules" ]; then
     echo -e "${RED}Error: gridtokenx-trading/node_modules missing. Please run 'bun install' or 'bun install' in gridtokenx-trading.${NC}"
@@ -248,13 +258,16 @@ run_in_new_terminal "API Gateway" "cargo run --bin api-gateway" "$GATEWAY_DIR"
 run_in_new_terminal "Simulator UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
 
 # 3. Smart Meter Simulator (Python API)
-run_in_new_terminal "Simulator API" "source .venv/bin/activate && export PYTHONPATH=\$PYTHONPATH:. && python -m uvicorn src.app.main:app --reload --host 0.0.0.0 --port 8000" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
+run_in_new_terminal "Simulator API" "source .venv/bin/activate && export PYTHONPATH=\$PYTHONPATH:src && python -m uvicorn app.app:app --reload --host 0.0.0.0 --port 8000" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
 
 # 4. Trading UI
 run_in_new_terminal "Trading UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-trading"
 
 # 5. Admin UI
-run_in_new_terminal "Admin UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-admin"
+# 5. Admin UI
+if [ -d "$PROJECT_ROOT/gridtokenx-admin" ] && [ -d "$PROJECT_ROOT/gridtokenx-admin/node_modules" ]; then
+    run_in_new_terminal "Admin UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-admin"
+fi
 
 # 6. Tail Validator Logs
 run_in_new_terminal "Validator Logs" "tail -f $PROJECT_ROOT/scripts/logs/validator.log" "$PROJECT_ROOT"

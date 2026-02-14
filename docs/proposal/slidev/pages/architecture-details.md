@@ -7,7 +7,7 @@
       <span class="text-xs opacity-80 mt-1 block">Async runtime with 15K req/s throughput • Connection pooling • Circuit breakers</span>
     </div>
     <div v-click class="p-3 rounded-lg border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/15 transition-all">
-      <strong class="text-blue-400 text-sm">PostgreSQL 16</strong><br>
+      <strong class="text-blue-400 text-sm">PostgreSQL 17</strong><br>
       <span class="text-xs opacity-80 mt-1 block">JSONB indexing • Logical replication • Partitioning for 1M+ records</span>
     </div>
     <div v-click class="p-3 rounded-lg border border-red-500/40 bg-red-500/10 hover:bg-red-500/15 transition-all">
@@ -15,8 +15,8 @@
       <span class="text-xs opacity-80 mt-1 block">Sub-ms latency • Pipelining • Session store with 10K active users</span>
     </div>
     <div v-click class="p-3 rounded-lg border border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/15 transition-all">
-      <strong class="text-purple-400 text-sm">Kafka 3.x</strong><br>
-      <span class="text-xs opacity-80 mt-1 block">25K msg/s peak • Exactly-once semantics • Snappy compression</span>
+      <strong class="text-purple-400 text-sm">Kafka 3.x (KRaft)</strong><br>
+      <span class="text-xs opacity-80 mt-1 block">25K msg/s peak • meter-readings topic • Snappy compression</span>
     </div>
     <div v-click class="p-3 rounded-lg border border-green-500/40 bg-green-500/10 hover:bg-green-500/15 transition-all">
       <strong class="text-green-400 text-sm">Solana RPC</strong><br>

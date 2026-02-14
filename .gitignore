@@ -6,6 +6,8 @@
 /gridtokenx-anchor
 
 *.pem
+.sqlx/*
+.vendor/*
 
 # Environment Variables
 .env

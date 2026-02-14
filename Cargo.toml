@@ -3,8 +3,12 @@ members = [
     "gridtokenx-anchor/programs/*",
     "gridtokenx-anchor/shared/*",
     "gridtokenx-apigateway",
-    "gridtokenx-wasm",
 ]
+# gridtokenx-wasm is excluded — it compiles to wasm32-unknown-unknown and
+# solana-zk-token-sdk (zeroize <1.4) conflicts with bcrypt (zeroize ^1.5.4)
+# trading program is excluded for the same zeroize conflict (solana-zk-token-sdk)
+# — it compiles separately via `anchor build` (BPF target)
+exclude = ["gridtokenx-wasm", "gridtokenx-anchor/programs/trading"]
 resolver = "2"
 
 # =============================================================================

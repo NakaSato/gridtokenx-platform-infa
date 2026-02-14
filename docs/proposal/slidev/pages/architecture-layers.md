@@ -3,7 +3,7 @@
 <div class="grid grid-cols-2 gap-8 mt-6">
   <div class="flex flex-col gap-2 text-sm">
     <div v-click class="p-3 rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/15 transition-all">
-      <strong class="text-cyan-400 text-sm">Next.js 15 App Router</strong><br>
+      <strong class="text-cyan-400 text-sm">Next.js 16 App Router</strong><br>
       <span class="text-xs opacity-80 mt-1 block">React Server Components • Streaming SSR • Route handlers • Middleware</span>
     </div>
     <div v-click class="p-3 rounded-lg border border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/15 transition-all">

@@ -141,8 +141,8 @@ services:
   # API Gateway (Rust/Axum)
   apigateway:
     build:
-      context: ./gridtokenx-apigateway
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: gridtokenx-apigateway/Dockerfile
     container_name: gridtokenx-apigateway
     ports:
       - "${APIGATEWAY_PORT}:4000"
@@ -438,8 +438,6 @@ volumes:
   influxdb_data:
   influxdb_config:
   mailpit_data:
-  solana_ledger:
-  anchor_cache:
   prometheus_data:
   grafana_data:
   kafka_data:

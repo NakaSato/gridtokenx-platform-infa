@@ -50,6 +50,25 @@ wait_for_validator() {
     return 1
 }
 
+# Function to wait for API Gateway
+wait_for_api_gateway() {
+    echo -e "${YELLOW}⏳ Waiting for API Gateway to be ready...${NC}"
+    for i in {1..60}; do
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/health" 2>/dev/null || echo "000")
+        if [ "$HTTP_CODE" = "200" ]; then
+            echo -e "${GREEN}✅ API Gateway is ready!${NC}"
+            return 0
+        fi
+        echo -ne "."
+        sleep 2
+    done
+    echo -e "\n${YELLOW}⚠️  API Gateway did not respond within 120s. It may still be compiling.${NC}"
+    return 1
+}
+
+# API config
+API_URL="http://localhost:4000"
+
 # Function to update env files
 update_env_file() {
     local file=$1
@@ -72,6 +91,8 @@ echo -e "${YELLOW}🧹 Cleaning up existing processes...${NC}"
 pkill -f "solana-test-validator" 2>/dev/null || true
 pkill -f "api-gateway" 2>/dev/null || true
 pkill -f "uvicorn" 2>/dev/null || true
+pkill -f "start-simulator" 2>/dev/null || true
+pkill -f "bun run dev" 2>/dev/null || true
 sleep 2
 echo -e "${GREEN}✅ Cleanup complete${NC}"
 
@@ -80,12 +101,35 @@ echo -e "${GREEN}✅ Cleanup complete${NC}"
 # ============================================================================
 echo ""
 echo -e "${YELLOW}🐳 Checking Docker services...${NC}"
+
+# Check if Docker daemon is running
+if ! docker info >/dev/null 2>&1; then
+    echo -e "${RED}❌ Docker daemon is not running. Please start Docker and try again.${NC}"
+    exit 1
+fi
+
 cd "$PROJECT_ROOT"
 if ! docker ps | grep -q "gridtokenx-postgres"; then
     echo -e "${YELLOW}Starting Docker services...${NC}"
     docker-compose up -d postgres redis mailpit 2>/dev/null || docker-compose up -d postgres redis
-    sleep 5
 fi
+
+# Wait for Postgres to be ready for connections
+echo -ne "${YELLOW}⏳ Waiting for PostgreSQL to be ready...${NC}"
+for i in {1..30}; do
+    if docker exec gridtokenx-postgres pg_isready -U gridtokenx_user -d gridtokenx >/dev/null 2>&1; then
+        echo -e "\r${GREEN}✅ PostgreSQL is ready!${NC}"
+        break
+    else
+        echo -ne "."
+        sleep 1
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "\n${RED}❌ PostgreSQL failed to start within 30 seconds.${NC}"
+        exit 1
+    fi
+done
+
 echo -e "${GREEN}✅ Docker services running${NC}"
 
 # ============================================================================
@@ -98,7 +142,7 @@ echo -e "${YELLOW}🔗 Starting Solana test validator...${NC}"
 mkdir -p scripts/logs
 
 # Start validator in background with reset and log redirection
-solana-test-validator --reset > scripts/logs/validator.log 2>&1 &
+solana-test-validator --reset --ledger "$PROJECT_ROOT/test-ledger" > scripts/logs/validator.log 2>&1 &
 VALIDATOR_PID=$!
 echo "Validator PID: $VALIDATOR_PID"
 
@@ -125,7 +169,7 @@ echo -e "${YELLOW}💰 Funding wallets...${NC}"
 # Fund default keypair
 DEFAULT_PUBKEY=$(solana address)
 echo "  Default keypair: $DEFAULT_PUBKEY"
-solana airdrop 100 $DEFAULT_PUBKEY --url $RPC_URL 2>/dev/null || true
+solana airdrop 10 $DEFAULT_PUBKEY --url $RPC_URL 2>/dev/null || true
 
 # Ensure dev wallet exists in gateway directory
 if [ ! -f "$DEV_WALLET" ]; then
@@ -255,15 +299,14 @@ run_in_new_terminal() {
 run_in_new_terminal "API Gateway" "cargo run --bin api-gateway" "$GATEWAY_DIR"
 
 # 2. Smart Meter Simulator (Frontend)
-run_in_new_terminal "Simulator UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
+run_in_new_terminal "Simulator UI" "bun run dev --port 8080" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator/ui"
 
 # 3. Smart Meter Simulator (Python API)
-run_in_new_terminal "Simulator API" "source .venv/bin/activate && export PYTHONPATH=\$PYTHONPATH:src && python -m uvicorn app.app:app --reload --host 0.0.0.0 --port 8000" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
+run_in_new_terminal "Simulator API" "PORT=8082 uv run start-simulator" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
 
 # 4. Trading UI
 run_in_new_terminal "Trading UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-trading"
 
-# 5. Admin UI
 # 5. Admin UI
 if [ -d "$PROJECT_ROOT/gridtokenx-admin" ] && [ -d "$PROJECT_ROOT/gridtokenx-admin/node_modules" ]; then
     run_in_new_terminal "Admin UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-admin"
@@ -278,16 +321,23 @@ echo -e "${YELLOW}To stop them, you can close the windows or run ./scripts/stop-
 
 # Disown validator so it stays running if we exit
 disown $VALIDATOR_PID
+
+# ============================================================================
+# Step 9: Wait for API Gateway readiness
+# ============================================================================
+echo ""
+wait_for_api_gateway
+
 echo ""
 echo -e "${GREEN}✅ Development environment launched!${NC}"
 echo ""
 echo -e "${BLUE}📡 Service Endpoints:${NC}"
 echo -e "  • Solana RPC:      ${CYAN}http://localhost:8899${NC}"
 echo -e "  • API Gateway:     ${CYAN}http://localhost:4000${NC}"
-echo -e "  • Simulator API:   ${CYAN}http://localhost:8000${NC}"
-echo -e "  • Simulator UI:    ${CYAN}http://localhost:8080${NC} (or similar, check terminal)"
+echo -e "  • Simulator API:   ${CYAN}http://localhost:8082${NC}"
+echo -e "  • Simulator UI:    ${CYAN}http://localhost:8080${NC}"
 echo -e "  • Trading UI:      ${CYAN}http://localhost:3000${NC}"
-echo -e "  • Admin UI:        ${CYAN}http://localhost:3001${NC} (or similar, check terminal)"
+echo -e "  • Admin UI:        ${CYAN}http://localhost:3001${NC}"
 echo ""
 echo -e "${YELLOW}👉 Check the opened Terminal windows for logs and actual frontend ports if different.${NC}"
-
+echo -e "${GREEN}🧪 Ready to run: bash scripts/test_e2e_api_trading.sh${NC}"

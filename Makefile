@@ -1,36 +1,44 @@
 # GridTokenX Platform - Docker Management
 # Convenience Makefile for common Docker operations
 
-.PHONY: help build up down logs clean restart ps health dev prod
+.PHONY: help build up down stop logs clean restart ps health dev prod db-up db-down db-logs backup-db restore-db test stats pull validate setup-env
 
 # Default target
 help:
-	@echo "GridTokenX Platform - Docker Management"
+	@echo "GridTokenX Platform - Development & Docker Management"
 	@echo ""
 	@echo "Available commands:"
-	@echo "  make build       - Build all Docker images"
-	@echo "  make up          - Start all services in production mode"
+	@echo "  make dev         - Start all services in development mode (recommended)"
+	@echo "  make prod        - Start all services in production mode (Docker)"
+	@echo "  make up          - Alias for 'make prod'"
 	@echo "  make down        - Stop all services"
+	@echo "  make stop        - Stop development services."
+	@echo "  make build       - Build all Docker images"
 	@echo "  make logs        - View logs from all services"
-	@echo "  make clean       - Stop services and remove volumes (⚠️  deletes data)"
+	@echo "  make clean       - Stop services and remove volumes."
 	@echo "  make restart     - Restart all services"
 	@echo "  make ps          - Show status of all services"
 	@echo "  make health      - Check health of all services"
-	@echo "  make dev         - Start all services in development mode"
-	@echo "  make prod        - Start all services in production mode"
-	@echo "  make db-up       - Start only database services"
+	@echo ""
+	@echo "Database commands:"
+	@echo "  make db-up       - Start only database services (postgres, redis)"
 	@echo "  make db-down     - Stop only database services"
 	@echo "  make db-logs     - View logs for database services"
+	@echo "  make backup-db   - Create database backup"
+	@echo "  make restore-db  - Restore database (use: FILE=path/to/backup.sql)"
+	@echo ""
+	@echo "Service Endpoints (dev mode):"
+	@echo "  Solana RPC:    http://localhost:8899"
+	@echo "  API Gateway:   http://localhost:4000"
+	@echo "  Simulator API: http://localhost:8000"
+	@echo "  Simulator UI:  http://localhost:8080"
+	@echo "  Trading UI:    http://localhost:3000"
+	@echo "  Admin UI:      http://localhost:3001"
 	@echo ""
 	@echo "Service-specific commands:"
 	@echo "  make logs-<service>    - View logs for specific service"
 	@echo "  make restart-<service> - Restart specific service"
 	@echo "  make build-<service>   - Rebuild specific service"
-	@echo ""
-	@echo "Examples:"
-	@echo "  make logs-explorer"
-	@echo "  make restart-apigateway"
-	@echo "  make build-trading"
 
 # Build all images
 build:
@@ -45,12 +53,12 @@ prod:
 	docker-compose up -d
 	@echo ""
 	@echo "Services started! Access points:"
-	@echo "  Explorer:      http://localhost:3000"
-	@echo "  Trading:       http://localhost:3001"
-	@echo "  Website:       http://localhost:3002"
+	@echo "  Solana RPC:    http://localhost:8899"
 	@echo "  API Gateway:   http://localhost:4000"
-	@echo "  Smart Meter:   http://localhost:8080/docs"
-	@echo "  Dashboard:     http://localhost:5173"
+	@echo "  Simulator API: http://localhost:8000"
+	@echo "  Simulator UI:  http://localhost:8080"
+	@echo "  Trading UI:    http://localhost:3000"
+	@echo "  Admin UI:      http://localhost:3001"
 
 # Start services in development mode
 dev:
@@ -60,6 +68,17 @@ dev:
 # Stop all services
 down:
 	docker-compose down
+
+# Stop development services
+stop:
+	@echo "Stopping development services..."
+	@pkill -f "solana-test-validator" 2>/dev/null || true
+	@pkill -f "api-gateway" 2>/dev/null || true
+	@pkill -f "uvicorn" 2>/dev/null || true
+	@pkill -f "start-simulator" 2>/dev/null || true
+	@echo "✅ Development services stopped"
+	@echo ""
+	@echo "To stop Docker services, run: make down"
 
 # View logs
 logs:

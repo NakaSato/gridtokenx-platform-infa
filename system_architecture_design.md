@@ -94,7 +94,7 @@ graph TD
 1.  **Registry**: Manages user/meter identity PDAs.
     *   *PDA*: `find_program_address(["user", authority])`
 2.  **Energy Token**: SPL Token-2022 implementation.
-3.  **Trading**: Order matching logic and **confidential transfers** (ZK proofs via `solana-zk-token-sdk`).
+3.  **Trading**: On-chain order book for Continuous Double Auction (CDA).
 
 ### 6.2 Settlement Flow
 1.  **Telemetry**: Meter reads 5kWh surplus.

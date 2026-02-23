@@ -1,0 +1,29 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+skinparam defaultFontName Arial
+skinparam wrapWidth 150
+skinparam componentStyle rectangle
+
+LAYOUT_LEFT_RIGHT()
+
+title GridTokenX Data Collection - Container Diagram
+
+System_Boundary(platform, "GridTokenX Platform") {
+    
+    Container(simulator, "Smart Meter Simulator", "Python/FastAPI", "Generates energy readings via physics simulation")
+    Container(api, "API Gateway", "Rust/Axum", "Receives and validates meter data")
+    ContainerDb(queue, "Redis Queue", "Redis", "Task queue for async processing")
+    Container(worker, "Worker Pool", "Rust/Tokio", "Processes and enriches readings")
+    ContainerDb(cache, "Redis Cache", "Redis", "Hot data for real-time queries")
+    ContainerDb(db, "PostgreSQL", "PostgreSQL", "Persistent storage for billing")
+}
+
+Rel(simulator, api, "POST /readings", "JSON/HTTPS")
+Rel(api, queue, "Enqueue task", "Redis Protocol")
+Rel(queue, worker, "Consume task", "BRPOP")
+Rel(worker, cache, "Write cache", "SET")
+Rel(worker, db, "Write database", "INSERT")
+
+SHOW_LEGEND()
+@enduml

@@ -1,0 +1,51 @@
+```
+┌─────────────┐
+│  Simulator  │ Solves grid physics equations
+└──────┬──────┘
+       │ Emits JSON
+       ▼
+┌─────────────┐
+│    Kafka    │ Topic: meter-readings
+│   Broker    │ Partitions: 8, Replication: 3
+└──────┬──────┘
+       │ Consumes (rdkafka)
+       ▼
+┌─────────────┐
+│ API Gateway │ Rust Consumer (consumer.rs)
+│  (Consumer) │ Validates schema
+└──────┬──────┘
+       │ RPUSH
+       ▼
+┌─────────────┐
+│    Redis    │ List: queue:meter_readings
+│    Queue    │ Depth monitoring
+└──────┬──────┘
+       │ BRPOP (1s timeout)
+       ▼
+┌─────────────┐
+│Worker Pool  │ 4 Tokio tasks (reading_processor.rs)
+│ (Processor) │ Validation → Enrichment → Persistence
+└──────┬──────┘
+       │
+       ├─────────────────────┐
+       │                     │
+       ▼                     ▼
+┌─────────────┐      ┌─────────────┐
+│    Redis    │      │ PostgreSQL  │
+│  (Hot: 60s) │      │ (Warm: ∞)   │
+│ Real-time   │      │ Billing     │
+└─────────────┘      └─────────────┘
+       │                     │
+       │                     ▼
+       │              ┌─────────────┐
+       │              │  S3/Glacier  │
+       │              │ (Archive)    │
+       │              │ 7 years      │
+       │              └─────────────┘
+       ▼
+┌─────────────┐
+│  InfluxDB   │
+│ (Cold: 90d) │
+│ Analytics   │
+└─────────────┘
+```

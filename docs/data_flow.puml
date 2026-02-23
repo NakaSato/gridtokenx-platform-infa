@@ -1,0 +1,67 @@
+@startuml
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+title GridTokenX Data Collection Flow
+
+package "Simulation Layer" {
+    [Simulator] as SIM #LightYellow
+    note right of SIM
+      Solves grid physics equations
+      Pandapower + Newton-Raphson
+    end note
+}
+
+package "Ingestion Layer" {
+    [Kafka Broker] as KAFKA #LightBlue
+    note right of KAFKA
+      Topic: meter-readings
+      Partitions: 8, Replication: 3
+    end note
+}
+
+package "Processing Layer" {
+    [API Gateway\nConsumer] as CONSUMER #LightGreen
+    note right of CONSUMER
+      Rust Consumer (consumer.rs)
+      Validates schema
+    end note
+    
+    [Redis Queue] as REDIS_Q #LightCoral
+    note right of REDIS_Q
+      List: queue:meter_readings
+      Depth monitoring
+    end note
+    
+    [Worker Pool] as WORKER #LightGreen
+    note right of WORKER
+      4 Tokio tasks (reading_processor.rs)
+      Validation → Enrichment → Persistence
+    end note
+}
+
+package "Storage Layer" {
+    [Redis Cache] as HOT #Pink
+    note right of HOT
+      Hot: 60s TTL
+      Real-time dashboards
+    end note
+    
+    [PostgreSQL] as WARM #LightBlue
+    note right of WARM
+      Warm: Permanent
+      Billing & History
+    end note
+}
+
+SIM --> KAFKA : Emits JSON
+KAFKA --> CONSUMER : Consumes (rdkafka)
+CONSUMER --> REDIS_Q : RPUSH
+REDIS_Q --> WORKER : BRPOP (1s timeout)
+WORKER --> HOT
+WORKER --> WARM
+WORKER --> COLD
+WARM ..> ARCHIVE : Monthly snapshot
+
+@enduml

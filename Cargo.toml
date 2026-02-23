@@ -31,6 +31,7 @@ solana-pubsub-client = "2.3.1"
 # SPL Tokens - note: apigateway uses 8.0.0 for solana-sdk 2.3.x compatibility
 # Anchor programs (BPF) can use 9.0.0 since they compile separately
 spl-token = "8.0.0"
+spl-token-2022 = "8.0.0"
 spl-associated-token-account = "7.0.0"
 mpl-token-metadata = "5.0.0"
 
@@ -54,6 +55,7 @@ tokio = { version = "1.48", features = [
 # Utilities
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4", "serde"] }
+ulid = { version = "1.0", features = ["serde"] }
 thiserror = "2.0"
 
 # =============================================================================

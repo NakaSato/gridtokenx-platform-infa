@@ -25,10 +25,7 @@ To ensure reproducible results, we classify benchmark environments into tiers:
 
 | Tier | CPU | RAM | Storage | Network | Target Use Case |
 |------|-----|-----|---------|---------|-----------------|
-| **Developer** | M1/M2/M3 Pro or Ryzen 7 | 16GB+ | 512GB NVMe | WiFi 6 | Unit tests, LiteSVM |
-| **CI/CD** | 4 vCPU (Epyc/Xeon) | 16GB | 100GB SSD | 1Gbps | Regression testing |
-| **Performance** | 16 vCPU (High Freq) | 64GB+ | 1TB NVMe (7GB/s) | 10Gbps | Full TPC-C, Kafka Load |
-| **Production** | 32+ vCPU | 128GB+ | 2TB+ NVMe RAID | 25Gbps+ | Mainnet Validator |
+| **Developer** | M2 | 16GB+ | 512GB NVMe | WiFi 6 | Unit tests, LiteSVM |
 
 ---
 

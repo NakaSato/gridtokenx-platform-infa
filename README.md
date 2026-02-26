@@ -2,11 +2,11 @@
 
 A blockchain-powered P2P energy trading platform built on Solana with Anchor smart contracts.
 
-## 🏗️ Architecture
+## Architecture
 
 ![GridTokenX System Context](docs/proposal/slidev/public/context-diagram.svg)
 
-## 📦 Components
+## Components
 
 | Component | Directory | Port (default) |
 |-----------|-----------|----------------|
@@ -20,7 +20,7 @@ A blockchain-powered P2P energy trading platform built on Solana with Anchor sma
 
 Ports are configurable via `.env` when using Docker Compose.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Start full development environment (Validator, Docker, Relay, Frontend)
@@ -30,7 +30,7 @@ Ports are configurable via `.env` when using Docker Compose.
 ./scripts/stop-dev.sh
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Anchor Tests
 ```bash
@@ -44,7 +44,7 @@ cd gridtokenx-apigateway
 cargo test --lib -- --test-threads=1
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 Key environment variables:
 
@@ -57,11 +57,11 @@ Key environment variables:
 
 Submodules: run `git submodule update --init --recursive` to fetch `gridtokenx-anchor`, `gridtokenx-apigateway`, `gridtokenx-smartmeter-simulator`, `gridtokenx-trading`, `gridtokenx-wasm`.
 
-## 📊 Test Results
+## Test Results
 
 - **Anchor Programs**: 18/18 (100%)
 - **API Gateway**: 117/117 (100%)
 
-## 📝 License
+## License
 
 Proprietary - GridTokenX

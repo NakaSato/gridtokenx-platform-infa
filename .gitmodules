@@ -13,3 +13,6 @@
 [submodule "gridtokenx-wasm"]
 	path = gridtokenx-wasm
 	url = https://github.com/NakaSato/gridtokenx-wasm
+[submodule "gridtokenx-explorer"]
+	path = gridtokenx-explorer
+	url = https://github.com/NakaSato/gridtokenx-explorer.git

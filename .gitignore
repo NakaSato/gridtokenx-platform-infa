@@ -1,9 +1,10 @@
 /gridtokenx-apigateway
-/gridtokenx-explorer
 /gridtokenx-trading
 /gridtokenx-website
 /gridtokenx-smartmeter-simulator
 /gridtokenx-anchor
+/gridtokenx-portal
+/gridtokenx-explorer
 
 *.pem
 .sqlx/*

@@ -327,11 +327,11 @@ cmd_init() {
             --url "$RPC_URL" 2>/dev/null || log_warn "Deployment may have failed or already exists"
     }
     
-    deploy_program "registry" "CXXRVpEwyd2ch7eo425mtaBfr2Yi1825Nm6yik2NEWqR"
-    deploy_program "energy_token" "5DJCWKo5cXt3PXRsrpH1xixra4wXWbNzxZ1p4FHqSxvi"
-    deploy_program "trading" "8S2e2p4ghqMJuzTz5AkAKSka7jqsjgBH7eWDcCHzXPND"
-    deploy_program "oracle" "EkcPD2YEXhpo1J73UX9EJNnjV2uuFS8KXMVLx9ybqnhU"
-    deploy_program "governance" "8bNpJqZoqqUWKu55VWhR8LWS66BX7NPpwgYBAKhBzu2L"
+    deploy_program "registry" "DVoD5K5YRuXXF54a3b6r282jRD8RmtVHGfpw55DHFVDe"
+    deploy_program "energy_token" "ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno"
+    deploy_program "trading" "3iFReh5tvdWkLt7eJcvGKsST7wcwZsSHk3z3xCfUwHLw"
+    deploy_program "oracle" "Ad5crRxCcvKFAShAMYtRAD9XKak1cwH1FCE6TrpUA9i2"
+    deploy_program "governance" "DksRNiZsEZ3zN8n8ZWfukFqi3z74e5865oZ8wFk38p4X"
     
     log_success "Blockchain initialization complete!"
 }
@@ -517,9 +517,11 @@ cmd_start() {
         
         if command -v pnpm &> /dev/null; then
             pnpm ts-node scripts/bootstrap.ts 2>/dev/null || log_warn "Bootstrap may have failed"
-            
-            # Get PDA config
             local pda_config=$(pnpm ts-node scripts/get_pdas.ts 2>/dev/null || echo "")
+        else
+            npm run init-tpcc-schema 2>/dev/null || log_warn "Bootstrap failed"
+            local pda_config=$(npx ts-node scripts/get_pdas.ts 2>/dev/null || echo "")
+        fi
             local energy_mint=$(echo "$pda_config" | grep "ENERGY_TOKEN_MINT=" | cut -d'=' -f2)
             
             if [ -n "$energy_mint" ]; then
@@ -529,7 +531,6 @@ cmd_start() {
                 log_success "Environment configured"
             fi
         fi
-    fi
     
     # Step 5: Start Services
     echo ""
@@ -600,7 +601,15 @@ main() {
             cmd_stop "$@"
             ;;
         restart)
-            cmd_stop
+            cmd_stop --all
+            echo ""
+            log_info "Cleaning up database, solana ledger, and cache data..."
+            cd "$PROJECT_ROOT"
+            docker-compose down -v 2>/dev/null || true
+            rm -rf "$PROJECT_ROOT/test-ledger"
+            rm -rf "$PROJECT_ROOT/scripts/logs"
+            rm -f "$PROJECT_ROOT/.admin_token"
+            log_success "Cleanup complete"
             sleep 2
             cmd_start "$@"
             ;;

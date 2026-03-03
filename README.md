@@ -6,29 +6,78 @@ A blockchain-powered P2P energy trading platform built on Solana with Anchor sma
 
 ![GridTokenX System Context](docs/proposal/slidev/public/context-diagram.svg)
 
+## Technology Stack
+
+- **Core**: Rust (Axum), TypeScript (Bun/Next.js), Python (FastAPI), Solana (Anchor)
+- **Database**: PostgreSQL (Relational), InfluxDB (Time-series), Redis (Cache)
+- **Messaging**: Kafka (Event Streaming)
+- **Monitoring**: Prometheus, Grafana
+- **Infrastructure**: Docker, Docker Compose
+
 ## Components
 
-| Component | Directory | Port (default) |
-|-----------|-----------|----------------|
-| API Gateway | `gridtokenx-apigateway/` (submodule) | 4000 (`APIGATEWAY_PORT`) |
-| Trading UI | `gridtokenx-trading/` (submodule) | 3000 (`TRADING_PORT`) |
-| Admin Portal | `gridtokenx-admin/` | 3000 (when run via `bun run dev`) |
-| Anchor Dashboard | `anchor-dashboard/` | Vite dev server (IDL tooling) |
-| Anchor Programs | `gridtokenx-anchor/` (submodule) | - |
-| Smart Meter Simulator | `gridtokenx-smartmeter-simulator/` (submodule) | 8080 (`SMARTMETER_PORT`) |
-| WASM Library | `gridtokenx-wasm/` | - |
+| Component | Directory | Port / Connection |
+|-----------|-----------|-------------------|
+| **API Gateway** | `gridtokenx-apigateway/` | 4000 (Local) / 4000 (Docker) |
+| **Trading UI** | `gridtokenx-trading/` | 3000 (Next.js) |
+| **Smart Meter Sim** | `gridtokenx-smartmeter-simulator/`| 8082 (API) / 8080 (UI) |
+| **Anchor Programs** | `gridtokenx-anchor/` | Solana Local Validator |
+| **WASM Library** | `gridtokenx-wasm/` | Shared logic |
+| **PostgreSQL** | Docker | 5432 |
+| **Redis** | Docker | 6379 |
+| **InfluxDB** | Docker | 8086 |
+| **Kafka** | Docker | 9092 |
+| **Prometheus** | Docker | 9090 |
+| **Grafana** | Docker | 3001 |
+| **Mailpit** | Docker | 8025 (Web UI) / 1025 (SMTP) |
 
-Ports are configurable via `.env` when using Docker Compose.
+> [!NOTE]
+> The **Admin Portal** and **Anchor Dashboard** are currently under active development.
+
+## Management Tools
+
+GridTokenX provides several tools to manage the development environment:
+
+### 1. Unified Management Script (`app.sh`)
+The recommended way to start and stop the entire platform.
+```bash
+./scripts/app.sh start    # Start all services (Validator, Docker, API, UIs)
+./scripts/app.sh stop     # Stop all services
+./scripts/app.sh status   # Check service and endpoint status
+./scripts/app.sh init     # Initialize blockchain and deploy programs
+```
+
+### 2. Task Runner (`just`)
+For common development tasks like testing and migrations.
+```bash
+just test                 # Run all tests
+just migrate              # Run database migrations
+just db-up / db-down      # Toggle database containers
+just clippy               # Run lint checks
+```
+
+### 3. Shell Helper (`grx.nu`)
+For Nushell users, providing similar functionality to `just`.
 
 ## Quick Start
 
-```bash
-# Start full development environment (Validator, Docker, Relay, Frontend)
-./dev-start.sh
+1. **Clone & Fetch Submodules**:
+   ```bash
+   git clone <repo-url>
+   cd gridtokenx-platform-infa
+   git submodule update --init --recursive
+   ```
 
-# Stop all services
-./scripts/stop-dev.sh
-```
+2. **Setup Environment**:
+   ```bash
+   cp .env.example .env
+   # Edit .env if needed
+   ```
+
+3. **Launch Platform**:
+   ```bash
+   ./scripts/app.sh start
+   ```
 
 ## Testing
 
@@ -40,27 +89,15 @@ anchor test --skip-build
 
 ### API Gateway Tests
 ```bash
-cd gridtokenx-apigateway
-cargo test --lib -- --test-threads=1
+just test
 ```
 
-## Configuration
+## Monitoring
 
-Key environment variables:
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection | - |
-| `REDIS_URL` | Redis connection | - |
-| `SOLANA_RPC_URL` | Solana RPC endpoint | `http://localhost:8899` |
-| `TOKENIZATION_USE_ONCHAIN_BALANCE` | Use on-chain balance for escrow | `false` |
-
-Submodules: run `git submodule update --init --recursive` to fetch `gridtokenx-anchor`, `gridtokenx-apigateway`, `gridtokenx-smartmeter-simulator`, `gridtokenx-trading`, `gridtokenx-wasm`.
-
-## Test Results
-
-- **Anchor Programs**: 18/18 (100%)
-- **API Gateway**: 117/117 (100%)
+Once the platform is running, you can access monitoring tools:
+- **Grafana**: [http://localhost:3001](http://localhost:3001) (Admin/admin)
+- **Prometheus**: [http://localhost:9090](http://localhost:9090)
+- **Mailpit**: [http://localhost:8025](http://localhost:8025)
 
 ## License
 

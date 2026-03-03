@@ -18,4 +18,4 @@
 	url = https://github.com/NakaSato/gridtokenx-explorer.git
 [submodule "gridtokenx-portal"]
 	path = gridtokenx-portal
-	url = https://github.com/NakaSato/gridtokenx-portal.git
+	url = git@github.com:NakaSato/gridtokenx-portal.git

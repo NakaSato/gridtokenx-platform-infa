@@ -400,7 +400,7 @@ services:
       INFLUXDB_ORG: ${INFLUXDB_ORG}
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      API_GATEWAY_URL: http://apigateway:4000
+      API_GATEWAY_URL: ${API_GATEWAY_URL}
     depends_on:
       kafka:
         condition: service_healthy

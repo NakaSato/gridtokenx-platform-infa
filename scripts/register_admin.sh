@@ -166,12 +166,22 @@ log_info "Faucet response: $FAUCET_MESSAGE"
 # Step 4: Verify Admin Status
 log_info "Step 4: Verifying admin status..."
 
+# Small delay to ensure DB replication/consistency if applicable
+sleep 1
+
 PROFILE_RESP=$(curl -s -X GET "$API_URL/api/v1/users/me" \
     -H "Authorization: Bearer $ACCESS_TOKEN" 2>/dev/null || echo '{}')
 
-USER_ROLE=$(echo "$PROFILE_RESP" | jq -r '.role // empty')
-FINAL_WALLET=$(echo "$PROFILE_RESP" | jq -r '.wallet_address // empty')
+USER_ROLE=$(echo "$PROFILE_RESP" | jq -r '.role // "unknown"')
+FINAL_WALLET=$(echo "$PROFILE_RESP" | jq -r '.wallet_address // "none"')
 USER_BALANCE=$(echo "$PROFILE_RESP" | jq -r '.balance // "0"')
+
+if [ "$USER_ROLE" != "admin" ]; then
+    log_info "${YELLOW}Warning: User role is '$USER_ROLE' (expected 'admin').${NC}"
+    log_info "Note: You may need to log in again to receive a fresh token with 'admin' claims."
+else
+    log_success "Admin status verified in database"
+fi
 
 log_success "Admin user registration complete!"
 echo ""

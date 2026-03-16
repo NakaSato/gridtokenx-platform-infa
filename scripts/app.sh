@@ -8,6 +8,7 @@
 #   start     - Start all services (Docker, Solana, API, Frontend)
 #   stop      - Stop all services
 #   restart   - Restart all services
+#   doctor    - Check system dependencies and health
 #   status    - Check service status
 #   init      - Initialize blockchain and deploy programs
 #   register  - Register admin user
@@ -34,7 +35,9 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Project directories
-PROJECT_ROOT="/Users/chanthawat/Developments/gridtokenx-platform-infa"
+# Resolve PROJECT_ROOT dynamically based on script location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ANCHOR_DIR="$PROJECT_ROOT/gridtokenx-anchor"
 GATEWAY_DIR="$PROJECT_ROOT/gridtokenx-apigateway"
 DEV_WALLET="$GATEWAY_DIR/dev-wallet.json"
@@ -48,6 +51,55 @@ WS_URL="ws://localhost:8900"
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
+check_dependencies() {
+    local missing=()
+    local deps=("docker" "solana" "anchor" "bun" "cargo" "uv" "jq" "curl")
+    
+    log_info "Checking system dependencies..."
+    for dep in "${deps[@]}"; do
+        if ! command -v "$dep" &> /dev/null; then
+            missing+=("$dep")
+        fi
+    done
+    
+    if [ ${#missing[@]} -ne 0 ]; then
+        log_warn "Missing dependencies: ${missing[*]}"
+        return 1
+    fi
+    log_success "All core dependencies found."
+    return 0
+}
+
+cmd_doctor() {
+    show_banner
+    log_info "Running GridTokenX System Doctor..."
+    echo ""
+    
+    # Check dependencies
+    check_dependencies || log_warn "Please install missing dependencies to ensure all services can start."
+    
+    # Check Docker health
+    if docker info &>/dev/null; then
+        log_success "Docker daemon is running."
+    else
+        log_error "Docker daemon is not running. Please start Docker."
+    fi
+    
+    # Check Solana tools
+    if command -v solana &>/dev/null; then
+        local solana_ver=$(solana --version | head -n 1)
+        log_success "Solana CLI found: $solana_ver"
+    fi
+    
+    # Check Node.js/Bun
+    if command -v bun &>/dev/null; then
+        log_success "Bun found: $(bun --version)"
+    fi
+    
+    echo ""
+    log_info "Diagnostic complete!"
+}
 
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -85,6 +137,7 @@ show_help() {
     echo "  register  Register admin user"
     echo "  seed      Seed database with test users (SQL)"
     echo "  logs      View service logs"
+    echo "  doctor    Check system dependencies"
     echo ""
     echo "Options for 'start':"
     echo "  --skip-ui      Skip starting frontend UIs"
@@ -117,6 +170,25 @@ wait_for_service() {
     done
     echo ""
     log_warn "$name did not respond within $(($max_attempts * $interval))s"
+    return 1
+}
+
+wait_for_port() {
+    local name=$1
+    local port=$2
+    local max_attempts=${3:-30}
+    
+    log_info "Waiting for $name (Port $port) to be open..."
+    for i in $(seq 1 $max_attempts); do
+        if nc -z localhost "$port" 2>/dev/null; then
+            log_success "$name (Port $port) is open!"
+            return 0
+        fi
+        echo -ne "."
+        sleep 1
+    done
+    echo ""
+    log_warn "$name did not respond on port $port"
     return 1
 }
 
@@ -154,14 +226,78 @@ update_env_file() {
     local var=$2
     local value=$3
     
-    if [ -f "$file" ]; then
-        if grep -q "^${var}=" "$file"; then
-            sed -i '' "s|^${var}=.*|${var}=${value}|" "$file" 2>/dev/null || \
-            sed -i "s|^${var}=.*|${var}=${value}|" "$file"
-        else
-            echo "${var}=${value}" >> "$file"
-        fi
+    if [ ! -f "$file" ]; then
+        # Create file if it doesn't exist
+        touch "$file"
     fi
+
+    if grep -q "^${var}=" "$file"; then
+        # Platform-agnostic sed in-place update
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^${var}=.*|${var}=${value}|" "$file"
+        else
+            sed -i "s|^${var}=.*|${var}=${value}|" "$file"
+        fi
+    else
+        echo "${var}=${value}" >> "$file"
+    fi
+}
+
+# Propagate program IDs and metadata to all services
+propagate_program_ids() {
+    local registry_id=$1
+    local energy_token_id=$2
+    local trading_id=$3
+    local oracle_id=$4
+    local governance_id=$5
+    local energy_mint=$6
+    local currency_mint=$7
+    local registry_pda=$8
+    local trading_market_pda=$9
+
+    log_info "Propagating program IDs to services..."
+
+    # API Gateway
+    local gateway_env="$GATEWAY_DIR/.env"
+    update_env_file "$gateway_env" "SOLANA_REGISTRY_PROGRAM_ID" "$registry_id"
+    update_env_file "$gateway_env" "SOLANA_ENERGY_TOKEN_PROGRAM_ID" "$energy_token_id"
+    update_env_file "$gateway_env" "SOLANA_TRADING_PROGRAM_ID" "$trading_id"
+    update_env_file "$gateway_env" "SOLANA_ORACLE_PROGRAM_ID" "$oracle_id"
+    update_env_file "$gateway_env" "SOLANA_GOVERNANCE_PROGRAM_ID" "$governance_id"
+    update_env_file "$gateway_env" "ENERGY_TOKEN_MINT" "$energy_mint"
+    [ -n "$currency_mint" ] && update_env_file "$gateway_env" "CURRENCY_TOKEN_MINT" "$currency_mint"
+    [ -n "$registry_pda" ] && update_env_file "$gateway_env" "REGISTRY_PDA" "$registry_pda"
+    [ -n "$trading_market_pda" ] && update_env_file "$gateway_env" "TRADING_MARKET_PDA" "$trading_market_pda"
+    update_env_file "$gateway_env" "SOLANA_RPC_URL" "$RPC_URL"
+
+    # Explorer
+    local explorer_env="$PROJECT_ROOT/gridtokenx-explorer/.env"
+    update_env_file "$explorer_env" "NEXT_PUBLIC_REGISTRY_PROGRAM_ID" "$registry_id"
+    update_env_file "$explorer_env" "NEXT_PUBLIC_TOKEN_PROGRAM_ID" "$energy_token_id"
+    update_env_file "$explorer_env" "NEXT_PUBLIC_TRADING_PROGRAM_ID" "$trading_id"
+    update_env_file "$explorer_env" "NEXT_PUBLIC_ORACLE_PROGRAM_ID" "$oracle_id"
+    update_env_file "$explorer_env" "NEXT_PUBLIC_GOVERNANCE_PROGRAM_ID" "$governance_id"
+    update_env_file "$explorer_env" "NEXT_PUBLIC_SOLANA_RPC_HTTP" "$RPC_URL"
+    update_env_file "$explorer_env" "NEXT_PUBLIC_SOLANA_RPC_WS" "$WS_URL"
+
+    # Portal
+    local portal_env="$PROJECT_ROOT/gridtokenx-portal/.env"
+    update_env_file "$portal_env" "NEXT_PUBLIC_TRADING_PROGRAM_ID" "$trading_id"
+    update_env_file "$portal_env" "NEXT_PUBLIC_ENERGY_TOKEN_MINT" "$energy_mint"
+    update_env_file "$portal_env" "NEXT_PUBLIC_SOLANA_RPC_URL" "$RPC_URL"
+
+    # Trading
+    local trading_env="$PROJECT_ROOT/gridtokenx-trading/.env"
+    update_env_file "$trading_env" "NEXT_PUBLIC_REGISTRY_PROGRAM_ID" "$registry_id"
+    update_env_file "$trading_env" "NEXT_PUBLIC_ENERGY_TOKEN_PROGRAM_ID" "$energy_token_id"
+    update_env_file "$trading_env" "NEXT_PUBLIC_TRADING_PROGRAM_ID" "$trading_id"
+    update_env_file "$trading_env" "NEXT_PUBLIC_ORACLE_PROGRAM_ID" "$oracle_id"
+    update_env_file "$trading_env" "NEXT_PUBLIC_GOVERNANCE_PROGRAM_ID" "$governance_id"
+    update_env_file "$trading_env" "NEXT_PUBLIC_ENERGY_TOKEN_MINT" "$energy_mint"
+    update_env_file "$trading_env" "NEXT_PUBLIC_SOLANA_RPC_URL" "$RPC_URL"
+    update_env_file "$trading_env" "NEXT_PUBLIC_SOLANA_WS_URL" "$WS_URL"
+
+    log_success "Program IDs propagated to all services."
 }
 
 # Run command in new Terminal window (macOS)
@@ -171,12 +307,7 @@ run_in_terminal() {
     local dir="$3"
     
     log_info "Starting $title..."
-    if command -v osascript &> /dev/null; then
-        osascript -e "tell application \"Terminal\" to do script \"cd $dir && $command\"" >/dev/null 2>&1
-    else
-        # Linux fallback - use nohup
-        (cd "$dir" && nohup bash -c "$command" > /dev/null 2>&1 &)
-    fi
+    (cd "$dir" && nohup bash -c "$command" > /dev/null 2>&1 &)
 }
 
 # ============================================================================
@@ -197,7 +328,7 @@ cmd_stop() {
     
     # Stop Simulator
     pkill -f "uvicorn" 2>/dev/null || true
-    pkill -f "start-simulator" 2>/dev/null && log_success "Simulator stopped" || true
+    pkill -f "uv run start" 2>/dev/null && log_success "Simulator stopped" || true
     
     # Stop Solana
     pkill -f "solana-test-validator" 2>/dev/null && log_success "Solana validator stopped" || log_warn "Solana validator was not running"
@@ -234,31 +365,39 @@ cmd_status() {
     echo ""
     
     local services=(
-        "PostgreSQL:gridtokenx-postgres:docker"
-        "Redis:gridtokenx-redis:docker"
-        "API Gateway::process:api-gateway"
-        "Solana Validator::process:solana-test-validator"
-        "Simulator API::process:uvicorn"
-        "Trading UI::process:bun.*dev.*3000"
-        "Simulator UI::process:bun.*dev.*8080"
+        "PostgreSQL:docker:gridtokenx-postgres"
+        "Redis:docker:gridtokenx-redis"
+        "API Gateway:process:api-gateway"
+        "Solana Validator:process:solana-test-validator"
+        "Simulator API:process:uvicorn"
+        "Trading UI:process:bun.*dev.*3000"
+        "Explorer UI:process:bun.*dev.*3001"
+        "App Portal:process:bun.*dev.*3002"
+        "Simulator UI:process:bun.*dev.*8080"
     )
     
+    printf "%-25s %-15s %-10s\n" "Service" "Type" "Status"
+    printf "%-25s %-15s %-10s\n" "-------" "----" "------"
+    
     for service in "${services[@]}"; do
-        IFS=':' read -r name container_type pattern <<< "$service"
+        IFS=':' read -r name type pattern <<< "$service"
         
-        if [ "$container_type" == "docker" ]; then
+        local status_icon="${RED}✗${NC}"
+        local status_text="${RED}Stopped${NC}"
+        
+        if [ "$type" == "docker" ]; then
             if docker ps --format '{{.Names}}' | grep -q "^${pattern}$"; then
-                echo -e "${GREEN}✓${NC} $name: ${GREEN}Running${NC}"
-            else
-                echo -e "${RED}✗${NC} $name: ${RED}Stopped${NC}"
+                status_icon="${GREEN}✓${NC}"
+                status_text="${GREEN}Running${NC}"
             fi
         else
             if pgrep -f "$pattern" > /dev/null 2>&1; then
-                echo -e "${GREEN}✓${NC} $name: ${GREEN}Running${NC}"
-            else
-                echo -e "${RED}✗${NC} $name: ${RED}Stopped${NC}"
+                status_icon="${GREEN}✓${NC}"
+                status_text="${GREEN}Running${NC}"
             fi
         fi
+        
+        printf "%b %-23s %-15s %b\n" "$status_icon" "$name" "$type" "$status_text"
     done
     
     echo ""
@@ -314,25 +453,56 @@ cmd_init() {
     fi
     
     # Deploy programs
-    log_info "Deploying Programs..."
+    log_info "Deploying Programs (Using existing keypairs for consistent IDs)..."
     
     deploy_program() {
         local NAME=$1
         local ID=$2
         
         log_info "Deploying $NAME ($ID)..."
+        # Use existing keypair if available to keep Program ID
+        local KEYPAIR="$ANCHOR_DIR/target/deploy/${NAME}-keypair.json"
+        
         solana program deploy \
-            --program-id "$ANCHOR_DIR/target/deploy/${NAME}-keypair.json" \
+            --program-id "$KEYPAIR" \
             "$ANCHOR_DIR/target/deploy/${NAME}.so" \
-            --url "$RPC_URL" 2>/dev/null || log_warn "Deployment may have failed or already exists"
+            --url "$RPC_URL" 2>/dev/null || log_warn "Deployment may have failed or already exists (ID: $ID)"
     }
     
-    deploy_program "registry" "DVoD5K5YRuXXF54a3b6r282jRD8RmtVHGfpw55DHFVDe"
-    deploy_program "energy_token" "ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno"
-    deploy_program "trading" "3iFReh5tvdWkLt7eJcvGKsST7wcwZsSHk3z3xCfUwHLw"
-    deploy_program "oracle" "Ad5crRxCcvKFAShAMYtRAD9XKak1cwH1FCE6TrpUA9i2"
-    deploy_program "governance" "DksRNiZsEZ3zN8n8ZWfukFqi3z74e5865oZ8wFk38p4X"
+    # Program IDs from Anchor.toml
+    local REGISTRY_ID="DVoD5K5YRuXXF54a3b6r282jRD8RmtVHGfpw55DHFVDe"
+    local ENERGY_TOKEN_ID="ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno"
+    local TRADING_ID="3iFReh5tvdWkLt7eJcvGKsST7wcwZsSHk3z3xCfUwHLw"
+    local ORACLE_ID="Ad5crRxCcvKFAShAMYtRAD9XKak1cwH1FCE6TrpUA9i2"
+    local GOVERNANCE_ID="DksRNiZsEZ3zN8n8ZWfukFqi3z74e5865oZ8wFk38p4X"
+
+    deploy_program "registry" "$REGISTRY_ID"
+    deploy_program "energy_token" "$ENERGY_TOKEN_ID"
+    deploy_program "trading" "$TRADING_ID"
+    deploy_program "oracle" "$ORACLE_ID"
+    deploy_program "governance" "$GOVERNANCE_ID"
     
+    # Extract metadata for propagation
+    log_info "Extracting PDAs and Mint addresses..."
+    cd "$ANCHOR_DIR"
+    local pda_config=$(npx ts-node scripts/get_pdas.ts 2>/dev/null || echo "")
+    local energy_mint=$(echo "$pda_config" | grep "ENERGY_TOKEN_MINT=" | cut -d'=' -f2)
+    local currency_mint=$(echo "$pda_config" | grep "CURRENCY_TOKEN_MINT=" | cut -d'=' -f2)
+    local registry_pda=$(echo "$pda_config" | grep "REGISTRY_PDA=" | cut -d'=' -f2)
+    local trading_market_pda=$(echo "$pda_config" | grep "TRADING_MARKET_PDA=" | cut -d'=' -f2)
+
+    # Propagate
+    propagate_program_ids \
+        "$REGISTRY_ID" \
+        "$ENERGY_TOKEN_ID" \
+        "$TRADING_ID" \
+        "$ORACLE_ID" \
+        "$GOVERNANCE_ID" \
+        "${energy_mint:-ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno}" \
+        "$currency_mint" \
+        "$registry_pda" \
+        "$trading_market_pda"
+
     log_success "Blockchain initialization complete!"
 }
 
@@ -430,24 +600,106 @@ cmd_logs() {
 }
 
 # ============================================================================
+# Modular Start Functions
+# ============================================================================
+
+start_core_services() {
+    log_info "Starting Core Docker services..."
+    if ! docker info >/dev/null 2>&1; then
+        log_error "Docker daemon is not running."
+    fi
+    
+    cd "$PROJECT_ROOT"
+    docker-compose up -d postgres redis mailpit nginx 2>/dev/null || docker-compose up -d postgres redis nginx
+    wait_for_postgres
+    log_success "Core services ready"
+}
+
+start_blockchain_services() {
+    echo ""
+    log_info "Starting Solana test validator..."
+    mkdir -p "$PROJECT_ROOT/scripts/logs"
+    solana-test-validator --reset --ledger "$PROJECT_ROOT/test-ledger" > "$PROJECT_ROOT/scripts/logs/validator.log" 2>&1 &
+    wait_for_solana
+    
+    # Fund wallets
+    log_info "Funding wallets..."
+    solana airdrop 10 $(solana address) --url "$RPC_URL" 2>/dev/null || true
+    
+    if [ ! -f "$DEV_WALLET" ]; then
+        if [ -f "$PROJECT_ROOT/dev-wallet.json" ]; then
+            cp "$PROJECT_ROOT/dev-wallet.json" "$DEV_WALLET"
+        else
+            solana-keygen new --no-bip39-passphrase --outfile "$DEV_WALLET" 2>/dev/null
+        fi
+    fi
+    
+    local dev_pubkey=$(solana-keygen pubkey "$DEV_WALLET")
+    solana airdrop 100 "$dev_pubkey" --url "$RPC_URL" 2>/dev/null || true
+    log_success "Wallets funded"
+    
+    # Initialize blockchain
+    cmd_init
+}
+
+start_application_services() {
+    local skip_ui=$1
+    
+    echo ""
+    log_info "Starting application backend services..."
+    mkdir -p "$PROJECT_ROOT/scripts/logs"
+    
+    # API Gateway Nodes
+    run_in_terminal "API Gateway Node 1" "PORT=4001 cargo run --release --bin api-gateway > $PROJECT_ROOT/scripts/logs/api-node-1.log 2>&1" "$GATEWAY_DIR"
+    run_in_terminal "API Gateway Node 2" "PORT=4002 cargo run --release --bin api-gateway > $PROJECT_ROOT/scripts/logs/api-node-2.log 2>&1" "$GATEWAY_DIR"
+    
+    # Wait for the Nginx proxy
+    wait_for_service "API Gateway Load Balancer" "$API_URL/health" 60 2
+    
+    if [ "$skip_ui" = false ]; then
+        echo ""
+        log_info "Starting frontend UIs..."
+        
+        # Simulator
+        if [ -d "$PROJECT_ROOT/gridtokenx-smartmeter-simulator/ui/node_modules" ]; then
+            run_in_terminal "Simulator UI" "bun run dev --port 8080" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator/ui"
+        fi
+        
+        if [ -f "$PROJECT_ROOT/gridtokenx-smartmeter-simulator/pyproject.toml" ]; then
+            run_in_terminal "Simulator API" "PORT=8082 uv run start" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
+        fi
+        
+        # Trading UI
+        if [ -d "$PROJECT_ROOT/gridtokenx-trading/node_modules" ]; then
+            run_in_terminal "Trading UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-trading"
+        fi
+        
+        # Explorer UI
+        if [ -d "$PROJECT_ROOT/gridtokenx-explorer/node_modules" ]; then
+            run_in_terminal "Explorer UI" "bun run dev --port 3001" "$PROJECT_ROOT/gridtokenx-explorer"
+        fi
+        
+        # App Portal
+        if [ -d "$PROJECT_ROOT/gridtokenx-portal/node_modules" ]; then
+            run_in_terminal "App Portal" "bun run dev --port 3002" "$PROJECT_ROOT/gridtokenx-portal"
+        fi
+        
+        # Admin UI
+        if [ -d "$PROJECT_ROOT/gridtokenx-admin/node_modules" ]; then
+            run_in_terminal "Admin UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-admin"
+        fi
+    fi
+}
+
+# ============================================================================
 # Command: START
 # ============================================================================
 
 cmd_start() {
-    local skip_ui=false
-    local skip_solana=false
-    local docker_only=false
-    
-    # Parse options
-    for arg in "$@"; do
-        case "$arg" in
-            --skip-ui) skip_ui=true ;;
-            --skip-solana) skip_solana=true ;;
-            --docker-only) docker_only=true ;;
-        esac
-    done
-    
     show_banner
+    
+    # Pre-flight
+    check_dependencies || true
     
     # Step 1: Cleanup
     log_info "Cleaning up existing processes..."
@@ -457,109 +709,53 @@ cmd_start() {
     pkill -f "bun run dev" 2>/dev/null || true
     sleep 2
     
-    # Step 2: Docker Services
-    log_info "Starting Docker services..."
-    if ! docker info >/dev/null 2>&1; then
-        log_error "Docker daemon is not running. Please start Docker and try again."
-    fi
-    
-    cd "$PROJECT_ROOT"
-    docker-compose up -d postgres redis mailpit 2>/dev/null || docker-compose up -d postgres redis
-    wait_for_postgres
-    log_success "Docker services ready"
+    # Step 2: Core Docker Services
+    start_core_services
     
     if [ "$docker_only" = true ]; then
-        echo ""
-        log_success "Docker services started!"
-        echo ""
-        echo "Run '$0 init' to initialize blockchain"
-        echo "Run '$0 start' without --docker-only to start full stack"
         return 0
     fi
     
-    # Step 3: Solana Validator
+    # Step 3: Blockchain Services
     if [ "$skip_solana" = false ]; then
+        start_blockchain_services
+        
+        # Step 4: Anchor Configuration
         echo ""
-        log_info "Starting Solana test validator..."
-        mkdir -p "$PROJECT_ROOT/scripts/logs"
-        solana-test-validator --reset --ledger "$PROJECT_ROOT/test-ledger" > "$PROJECT_ROOT/scripts/logs/validator.log" 2>&1 &
-        local validator_pid=$!
-        wait_for_solana
-        
-        # Fund wallets
-        log_info "Funding wallets..."
-        solana airdrop 10 $(solana address) --url "$RPC_URL" 2>/dev/null || true
-        
-        if [ ! -f "$DEV_WALLET" ]; then
-            if [ -f "$PROJECT_ROOT/dev-wallet.json" ]; then
-                cp "$PROJECT_ROOT/dev-wallet.json" "$DEV_WALLET"
-            else
-                solana-keygen new --no-bip39-passphrase --outfile "$DEV_WALLET" 2>/dev/null
-            fi
-        fi
-        
-        local dev_pubkey=$(solana-keygen pubkey "$DEV_WALLET")
-        solana airdrop 100 "$dev_pubkey" --url "$RPC_URL" 2>/dev/null || true
-        log_success "Wallets funded"
-        
-        # Initialize blockchain
-        echo ""
-        cmd_init
-    fi
-    
-    # Step 4: Anchor Bootstrap (if Solana is running)
-    if [ "$skip_solana" = false ]; then
-        echo ""
-        log_info "Running Anchor Bootstrap..."
+        log_info "Configuring environment..."
         cd "$ANCHOR_DIR"
         export ANCHOR_PROVIDER_URL="$RPC_URL"
         export ANCHOR_WALLET="$DEV_WALLET"
         
-        if command -v pnpm &> /dev/null; then
-            pnpm ts-node scripts/bootstrap.ts 2>/dev/null || log_warn "Bootstrap may have failed"
-            local pda_config=$(pnpm ts-node scripts/get_pdas.ts 2>/dev/null || echo "")
-        else
-            npm run init-tpcc-schema 2>/dev/null || log_warn "Bootstrap failed"
-            local pda_config=$(npx ts-node scripts/get_pdas.ts 2>/dev/null || echo "")
-        fi
-            local energy_mint=$(echo "$pda_config" | grep "ENERGY_TOKEN_MINT=" | cut -d'=' -f2)
-            
-            if [ -n "$energy_mint" ]; then
-                update_env_file "$GATEWAY_DIR/.env" "ENERGY_TOKEN_MINT" "$energy_mint"
-                update_env_file "$GATEWAY_DIR/.env" "SOLANA_RPC_URL" "$RPC_URL"
-                update_env_file "$PROJECT_ROOT/.env" "ENERGY_TOKEN_MINT" "$energy_mint"
-                log_success "Environment configured"
-            fi
-        fi
-    
-    # Step 5: Start Services
-    echo ""
-    log_info "Starting application services..."
-    
-    # API Gateway
-    run_in_terminal "API Gateway" "cargo run --bin api-gateway" "$GATEWAY_DIR"
-    wait_for_service "API Gateway" "$API_URL/health" 60 2
-    
-    if [ "$skip_ui" = false ]; then
-        # Simulator
-        if [ -d "$PROJECT_ROOT/gridtokenx-smartmeter-simulator/ui/node_modules" ]; then
-            run_in_terminal "Simulator UI" "bun run dev --port 8080" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator/ui"
-        fi
+        local pda_config=$(npx ts-node scripts/get_pdas.ts 2>/dev/null || echo "")
+        local energy_mint=$(echo "$pda_config" | grep "ENERGY_TOKEN_MINT=" | cut -d'=' -f2)
+        local currency_mint=$(echo "$pda_config" | grep "CURRENCY_TOKEN_MINT=" | cut -d'=' -f2)
+        local registry_pda=$(echo "$pda_config" | grep "REGISTRY_PDA=" | cut -d'=' -f2)
+        local trading_market_pda=$(echo "$pda_config" | grep "TRADING_MARKET_PDA=" | cut -d'=' -f2)
         
-        if [ -f "$PROJECT_ROOT/gridtokenx-smartmeter-simulator/pyproject.toml" ]; then
-            run_in_terminal "Simulator API" "PORT=8082 uv run start-simulator" "$PROJECT_ROOT/gridtokenx-smartmeter-simulator"
-        fi
+        # Program IDs from Anchor.toml
+        local REGISTRY_ID="DVoD5K5YRuXXF54a3b6r282jRD8RmtVHGfpw55DHFVDe"
+        local ENERGY_TOKEN_ID="ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno"
+        local TRADING_ID="3iFReh5tvdWkLt7eJcvGKsST7wcwZsSHk3z3xCfUwHLw"
+        local ORACLE_ID="Ad5crRxCcvKFAShAMYtRAD9XKak1cwH1FCE6TrpUA9i2"
+        local GOVERNANCE_ID="DksRNiZsEZ3zN8n8ZWfukFqi3z74e5865oZ8wFk38p4X"
+
+        propagate_program_ids \
+            "$REGISTRY_ID" \
+            "$ENERGY_TOKEN_ID" \
+            "$TRADING_ID" \
+            "$ORACLE_ID" \
+            "$GOVERNANCE_ID" \
+            "${energy_mint:-ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno}" \
+            "$currency_mint" \
+            "$registry_pda" \
+            "$trading_market_pda"
         
-        # Trading UI
-        if [ -d "$PROJECT_ROOT/gridtokenx-trading/node_modules" ]; then
-            run_in_terminal "Trading UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-trading"
-        fi
-        
-        # Admin UI
-        if [ -d "$PROJECT_ROOT/gridtokenx-admin/node_modules" ]; then
-            run_in_terminal "Admin UI" "bun run dev" "$PROJECT_ROOT/gridtokenx-admin"
-        fi
+        log_success "Environment configured and propagated"
     fi
+    
+    # Step 5: Application Services
+    start_application_services "$skip_ui"
     
     # Validator logs
     if [ "$skip_solana" = false ]; then
@@ -575,6 +771,8 @@ cmd_start() {
     echo -e "${CYAN}Service Endpoints:${NC}"
     echo "  • Solana RPC:    $RPC_URL"
     echo "  • API Gateway:   $API_URL"
+    echo "  • Explorer UI:   http://localhost:3001"
+    echo "  • App Portal:    http://localhost:3002"
     echo "  • Simulator:     http://localhost:8080"
     echo "  • Trading UI:    http://localhost:3000"
     echo ""
@@ -601,17 +799,30 @@ main() {
             cmd_stop "$@"
             ;;
         restart)
-            cmd_stop --all
-            echo ""
-            log_info "Cleaning up database, solana ledger, and cache data..."
-            cd "$PROJECT_ROOT"
-            docker-compose down -v 2>/dev/null || true
-            rm -rf "$PROJECT_ROOT/test-ledger"
-            rm -rf "$PROJECT_ROOT/scripts/logs"
-            rm -f "$PROJECT_ROOT/.admin_token"
-            log_success "Cleanup complete"
+            local fast_restart=false
+            if [[ "$1" == "--fast" ]]; then
+                fast_restart=true
+                shift
+            fi
+            
+            cmd_stop
+            
+            if [ "$fast_restart" = false ]; then
+                echo ""
+                log_info "Cleaning up database, solana ledger, and cache data..."
+                cd "$PROJECT_ROOT"
+                docker-compose down -v 2>/dev/null || true
+                rm -rf "$PROJECT_ROOT/test-ledger"
+                rm -rf "$PROJECT_ROOT/scripts/logs"
+                rm -f "$PROJECT_ROOT/.admin_token"
+                log_success "Cleanup complete"
+            fi
+            
             sleep 2
             cmd_start "$@"
+            ;;
+        doctor)
+            cmd_doctor
             ;;
         status)
             cmd_status

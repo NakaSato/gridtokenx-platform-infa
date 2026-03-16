@@ -635,62 +635,38 @@ pub fn batch_update_readings(
 
 ## 11. Benchmark Execution Guide
 
-### 11.1 Running BLOCKBENCH Suite
+### 11.1 Running Single Node Benchmark
 
 **Prerequisites:**
 ```bash
-# Install dependencies
-pnpm install
-
-# Build programs
-anchor build
-
-# Start LiteSVM (built into tests)
+# Start platform services
+./scripts/app.sh start
 ```
 
-**Execute Benchmarks:**
+**Execute HFT Throughput Benchmark:**
 ```bash
-# Full BLOCKBENCH suite
-pnpm blockbench
-
-# Individual workloads
-pnpm blockbench:ycsb:a    # YCSB Workload A
-pnpm blockbench:ycsb:b    # YCSB Workload B
-pnpm blockbench:ycsb:c    # YCSB Workload C
-
-# TPC-C
-pnpm benchmark:tpc-c
-
-# Smallbank
-pnpm benchmark:smallbank
-
-# Custom energy trading
-pnpm benchmark:trading
+# Run the HFT throughput test
+./gridtokenx-apigateway/tests/scripts/test_hft_throughput.sh
 ```
 
-### 11.2 Generate Reports
+### 11.2 Generate Reports and Update Paper
 
-**Command:**
+**Commands:**
 ```bash
-# Generate charts and CSV reports
-pnpm charts:generate
+# Generate charts from results
+python3 scripts/generate_plots.py benchmark_results.json benchmarks/charts
 
-# Detailed HTML report
-pnpm blockbench:report
+# Update LaTeX performance analysis with new scores
+python3 scripts/update_latex.py gridtokenx-anchor/docs/academic/performance_analysis.tex benchmark_results.json
 ```
 
 **Output:**
 ```
 benchmarks/
-  ├── results/
-  │   ├── ycsb-a-2026-01-27.json
-  │   ├── tpc-c-2026-01-27.json
-  │   └── trading-flash-sale-2026-01-27.json
   ├── charts/
-  │   ├── throughput-over-time.png
-  │   ├── latency-distribution.png
-  │   └── compute-units-breakdown.png
-  └── report.html
+  │   ├── throughput-chart.png
+  │   └── success-rate.png
+benchmark_results.json
 ```
 
 ---

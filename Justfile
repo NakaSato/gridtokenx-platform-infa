@@ -88,7 +88,7 @@ migrate-info:
 
 # Run api-gateway locally (requires db to be running)
 run:
-    (cd gridtokenx-apigateway; cargo run)
+    (cd gridtokenx-apigateway; cargo run --bin api-gateway)
 
 # Run in release mode
 run-release:

@@ -9,8 +9,9 @@ This workflow starts all required services for local development.
 ## Quick Command
 
 // turbo
+
 ```bash
-./scripts/start-dev.sh
+./scripts/app.sh start
 ```
 
 ## What This Script Does
@@ -26,18 +27,19 @@ This workflow starts all required services for local development.
 
 ## Services Started
 
-| Service | URL |
-|---------|-----|
-| Solana Validator | http://localhost:8899 |
-| API Gateway | http://localhost:4000 |
-| Swagger Docs | http://localhost:4000/api/docs |
-| PostgreSQL | localhost:5432 |
-| Redis | localhost:6379 |
+| Service          | URL                            |
+| ---------------- | ------------------------------ |
+| Solana Validator | http://localhost:8899          |
+| API Gateway      | http://localhost:4000          |
+| Swagger Docs     | http://localhost:4000/api/docs |
+| PostgreSQL       | localhost:5432                 |
+| Redis            | localhost:6379                 |
 
 ## Notes
+
 - The script creates a fresh SPL token on each run
 - Dev wallet keypair is at `gridtokenx-apigateway/dev-wallet.json` (or repo root `dev-wallet.json` when used by Docker)
 - Token mint address is automatically updated in .env files
 - **New Terminal tabs** will be opened for API Gateway, Simulator, and Trading UI
-- Use `./scripts/stop-dev.sh` to stop background services (Validator, Postgres, Redis)
+- Use `./scripts/app.sh start` to stop background services (Validator, Postgres, Redis)
 - You may need to manually close the extra Terminal tabs/windows

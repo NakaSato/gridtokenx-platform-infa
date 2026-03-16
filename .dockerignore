@@ -1,14 +1,70 @@
+# Git
 .git
-node_modules
-**/node_modules
-target
-**/target
+.gitmodules
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Build artifacts
+target/
+**/target/
+*.o
+*.so
+*.dylib
+
+# Node.js
+node_modules/
+**/node_modules/
+npm-debug.log
+yarn-error.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Test ledgers
+test-ledger/
+
+# Logs
 *.log
-**/*.log
-**/*.db
+logs/
+scripts/logs/
+
+# Environment
 .env
-.DS_Store
-tmp
-.agent
-.gemini
-gridtokenx-smartmeter-simulator/smart_meter.db
+.env.local
+.env.*.local
+
+# Docker
+docker-compose.override.yml
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Tests
+**/tests/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Development configs
+dev-wallet.json
+benchmark_results.json
+
+# Submodules (not needed for API Gateway build)
+gridtokenx-anchor/
+gridtokenx-smartmeter-simulator/
+gridtokenx-trading/
+gridtokenx-explorer/
+gridtokenx-portal/
+gridtokenx-wasm/

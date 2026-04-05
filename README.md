@@ -16,23 +16,40 @@ A blockchain-powered P2P energy trading platform built on Solana with Anchor sma
 
 ## Components
 
-| Component | Directory | Port / Connection |
-|-----------|-----------|-------------------|
-| **API Gateway** | `gridtokenx-api/` | 4000 (Local) / 4000 (Docker) |
-| **Trading UI** | `gridtokenx-trading/` | 3000 (Next.js) |
-| **Smart Meter Sim** | `gridtokenx-smartmeter-simulator/`| 8082 (API) / 8080 (UI) |
-| **Anchor Programs** | `gridtokenx-anchor/` | Solana Local Validator |
-| **WASM Library** | `gridtokenx-wasm/` | Shared logic |
-| **PostgreSQL** | Docker | 5432 |
-| **Redis** | Docker | 6379 |
-| **InfluxDB** | Docker | 8086 |
-| **Kafka** | Docker | 9092 |
-| **Prometheus** | Docker | 9090 |
-| **Grafana** | Docker | 3001 |
-| **Mailpit** | Docker | 8025 (Web UI) / 1025 (SMTP) |
+### Application Services
 
-> [!NOTE]
-> The **Admin Portal** and **Anchor Dashboard** are currently under active development.
+| Component | Directory | Port(s) |
+|-----------|-----------|---------|
+| **API Gateway** | `gridtokenx-api/` | 4000 (HTTP) |
+| **IAM Service** | `gridtokenx-iam-service/` | 4002 (HTTP) / 4012 (gRPC) |
+| **Trading Service** | `gridtokenx-trading-service/` | 8092 (HTTP) / 8093 (gRPC) |
+| **Oracle Bridge** | `gridtokenx-oracle-bridge/` | 4010 (IoT Gateway) |
+| **Trading UI** | `gridtokenx-trading/` | 3000 (Next.js) |
+| **Smart Meter Simulator** | `gridtokenx-smartmeter-simulator/` | 8082 (API) |
+| **Smart Meter UI** | `gridtokenx-smartmeter-simulator/ui` | 5173 (React/Vite) |
+| **Anchor Programs** | `gridtokenx-anchor/` | RPC: 8899 / WS: 8900 |
+| **WASM Library** | `gridtokenx-wasm/` | Shared logic |
+
+### Infrastructure
+
+| Component | Port(s) | Purpose |
+|-----------|---------|---------|
+| **PostgreSQL** | 5434 (Primary) / 5433 (Replica) | Relational Database |
+| **Redis** | 6379 (Primary) / 6380 (Replica) | Cache |
+| **InfluxDB** | 8086 | Time-Series Database |
+| **Kafka** | 9092 (Internal) / 29092 (External) | Event Streaming |
+| **Kong** | 8001 (Admin API) | API Gateway |
+| **Prometheus** | 9090 | Metrics Collection |
+| **Grafana** | 3001 | Visualization |
+| **Loki** | 3100 | Log Aggregation |
+| **Tempo** | 3200 | Tracing Backend |
+| **OTEL Collector** | 4317 (gRPC) / 4318 (HTTP) | Telemetry Ingestion |
+| **Mailpit** | 8025 (Web) / 1025 (SMTP) | Email Testing |
+| **Node Exporter** | 9100 | Host Metrics |
+| **cAdvisor** | 9082 | Container Metrics |
+| **PostgreSQL Exporter** | 9187 | Database Metrics |
+| **Redis Exporter** | 9121 | Cache Metrics |
+| **Kafka Exporter** | 9308 | Broker Metrics |
 
 ## Management Tools
 

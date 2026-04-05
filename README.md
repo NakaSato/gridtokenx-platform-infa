@@ -12,13 +12,13 @@ A blockchain-powered P2P energy trading platform built on Solana with Anchor sma
 - **Database**: PostgreSQL (Relational), InfluxDB (Time-series), Redis (Cache)
 - **Messaging**: Kafka (Event Streaming)
 - **Monitoring**: Prometheus, Grafana
-- **Infrastructure**: Docker, Docker Compose
+- **Infrastructure**: OrbStack (Docker Runtime), Docker Compose
 
 ## Components
 
 | Component | Directory | Port / Connection |
 |-----------|-----------|-------------------|
-| **API Gateway** | `gridtokenx-apigateway/` | 4000 (Local) / 4000 (Docker) |
+| **API Gateway** | `gridtokenx-api/` | 4000 (Local) / 4000 (Docker) |
 | **Trading UI** | `gridtokenx-trading/` | 3000 (Next.js) |
 | **Smart Meter Sim** | `gridtokenx-smartmeter-simulator/`| 8082 (API) / 8080 (UI) |
 | **Anchor Programs** | `gridtokenx-anchor/` | Solana Local Validator |
@@ -41,11 +41,22 @@ GridTokenX provides several tools to manage the development environment:
 ### 1. Unified Management Script (`app.sh`)
 The recommended way to start and stop the entire platform.
 ```bash
-./scripts/app.sh start    # Start all services (Validator, Docker, API, UIs)
-./scripts/app.sh stop     # Stop all services
-./scripts/app.sh status   # Check service and endpoint status
-./scripts/app.sh init     # Initialize blockchain and deploy programs
+./scripts/app.sh start                  # Start all services
+./scripts/app.sh start --native-apps    # Docker infra + native background services (recommended for dev)
+./scripts/app.sh start --skip-ui        # Backend services only
+./scripts/app.sh start --docker-only    # Infrastructure only (PostgreSQL, Redis, Kafka)
+./scripts/app.sh stop                   # Stop all services
+./scripts/app.sh status                 # Check service and endpoint status
+./scripts/app.sh init                   # Initialize blockchain and deploy programs
 ```
+
+**Running Modes:**
+- **Default** (`start`): Docker infrastructure + app services in terminal windows
+- **Native Apps** (`start --native-apps`): Docker infrastructure + app services as background processes with log files
+- **Docker Only** (`start --docker-only`): Only infrastructure containers
+- **Skip UI** (`start --skip-ui`): Backend services without frontend applications
+
+> 📖 **See also**: [Native Apps Mode Guide](docs/native-apps-mode.md) | [Quick Reference](docs/QUICK_REF_NATIVE_APPS.md)
 
 ### 2. Task Runner (`just`)
 For common development tasks like testing and migrations.
@@ -60,6 +71,20 @@ just clippy               # Run lint checks
 For Nushell users, providing similar functionality to `just`.
 
 ## Quick Start
+
+### Prerequisites
+
+**OrbStack Required**: GridTokenX uses [OrbStack](https://orbstack.dev/) as its Docker runtime for better performance and battery life on macOS.
+
+```bash
+# Install OrbStack (if not already installed)
+brew install --cask orbstack
+
+# Start OrbStack
+open -a OrbStack
+```
+
+> 📖 **Migrating from Docker Desktop?** See [OrbStack Migration Guide](docs/ORBSTACK_MIGRATION.md)
 
 1. **Clone & Fetch Submodules**:
    ```bash

@@ -1,0 +1,632 @@
+# GridTokenX Platform - Comprehensive Prometheus Alerting Rules
+# Location: monitoring/gridtokenx-alerts.yml
+# This file contains alerting rules for all GridTokenX services
+
+groups:
+  # =============================================================================
+  # API Gateway Alerts
+  # =============================================================================
+  - name: gridtokenx.api_gateway.alerts
+    rules:
+    - alert: APIHighErrorRate
+      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-api", status_code="ERROR"}[5m])) / sum(rate(signoz_calls_total{service_name="gridtokenx-api"}[5m])) > 0.05
+      for: 2m
+      labels:
+        severity: critical
+        team: platform
+        component: api-gateway
+      annotations:
+        summary: "API Gateway error rate is critically high"
+        description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%) for the last 2 minutes. Immediate investigation required."
+
+    - alert: APIHighLatency
+      expr: histogram_quantile(0.95, sum(rate(signoz_spans_duration_seconds_bucket{service_name="gridtokenx-api"}[5m])) by (le)) > 2
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+        component: api-gateway
+      annotations:
+        summary: "API Gateway P95 latency is high"
+        description: "P95 latency is {{ $value | humanizeDuration }} (threshold: 2s). Check database connections and external service dependencies."
+
+    - alert: APIEndpointHighLatency
+      expr: |
+        histogram_quantile(0.95, sum(rate(signoz_spans_duration_seconds_bucket{service_name="gridtokenx-api"}[5m])) by (le, name)) > 5
+      for: 10m
+      labels:
+        severity: warning
+        team: platform
+        component: api-gateway
+      annotations:
+        summary: "API endpoint {{ $labels.name }} has high latency"
+        description: "P95 latency for {{ $labels.name }} is {{ $value | humanizeDuration }} (threshold: 5s)."
+
+    - alert: APIHighRPS
+      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-api"}[1m])) > 1000
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+        component: api-gateway
+      annotations:
+        summary: "API Gateway experiencing high request volume"
+        description: "Request rate is {{ $value }} req/s (threshold: 1000 req/s). Consider scaling or rate limiting."
+
+    - alert: APIDatabaseConnectionPoolExhausted
+      expr: pg_stat_activity_count{datname="gridtokenx"} / pg_settings_max_connections > 0.9
+      for: 2m
+      labels:
+        severity: critical
+        team: platform
+        component: api-gateway
+      annotations:
+        summary: "API Gateway database connection pool nearly exhausted"
+        description: "Connection pool usage is {{ $value | humanizePercentage }}. Database connections may be exhausted soon."
+
+  # =============================================================================
+  # IAM Service Alerts
+  # =============================================================================
+  - name: gridtokenx.iam_service.alerts
+    rules:
+    - alert: IAMHighAuthFailureRate
+      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-iam-service", attribute_auth_result="failure"}[5m])) / sum(rate(signoz_calls_total{service_name="gridtokenx-iam-service"}[5m])) > 0.2
+      for: 5m
+      labels:
+        severity: critical
+        team: security
+        component: iam-service
+      annotations:
+        summary: "IAM Service authentication failure rate is high"
+        description: "Auth failure rate is {{ $value | humanizePercentage }} (threshold: 20%). Possible brute force attack or service issue."
+
+    - alert: IAMBruteForceAttack
+      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-iam-service", attribute_auth_result="failure", attribute_client_ip=~".+"}[5m])) by (attribute_client_ip) > 10
+      for: 2m
+      labels:
+        severity: critical
+        team: security
+        component: iam-service
+      annotations:
+        summary: "Possible brute force attack detected from {{ $labels.attribute_client_ip }}"
+        description: "IP {{ $labels.attribute_client_ip }} has {{ $value }} failed auth attempts per second."
+
+    - alert: IAMServiceDown
+      expr: up{service_name="gridtokenx-iam-service"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        team: platform
+        component: iam-service
+      annotations:
+        summary: "IAM Service is down"
+        description: "IAM service has been unreachable for more than 1 minute. All authentication is affected."
+
+    - alert: IAMJWTIssuanceSpike
+      expr: rate(signoz_calls_total{service_name="gridtokenx-iam-service", name=~".*jwt.*"}[5m]) > 100
+      for: 5m
+      labels:
+        severity: warning
+        team: security
+        component: iam-service
+      annotations:
+        summary: "Unusual JWT token issuance rate"
+        description: "JWT issuance rate is {{ $value }} tokens/s. This may indicate credential stuffing or token abuse."
+
+  # =============================================================================
+  # Trading Service Alerts
+  # =============================================================================
+  - name: gridtokenx.trading_service.alerts
+    rules:
+    - alert: TradingHighOrderFailureRate
+      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-trading-service", name=~".*order.*", status_code="ERROR"}[5m])) / sum(rate(signoz_calls_total{service_name="gridtokenx-trading-service", name=~".*order.*"}[5m])) > 0.1
+      for: 3m
+      labels:
+        severity: critical
+        team: trading
+        component: trading-service
+      annotations:
+        summary: "Trading Service order failure rate is high"
+        description: "Order failure rate is {{ $value | humanizePercentage }} (threshold: 10%). Trading is significantly impacted."
+
+    - alert: TradingMatchingEngineLatency
+      expr: histogram_quantile(0.99, sum(rate(signoz_spans_duration_seconds_bucket{service_name="gridtokenx-trading-service", name=~".*match.*"}[5m])) by (le)) > 0.5
+      for: 5m
+      labels:
+        severity: warning
+        team: trading
+        component: trading-service
+      annotations:
+        summary: "Trading matching engine latency is high"
+        description: "P99 matching latency is {{ $value | humanizeDuration }} (threshold: 500ms). Order execution may be delayed."
+
+    - alert: TradingSettlementFailure
+      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-trading-service", name=~".*settle.*", status_code="ERROR"}[5m])) > 0
+      for: 2m
+      labels:
+        severity: critical
+        team: trading
+        component: trading-service
+      annotations:
+        summary: "Trading settlement failures detected"
+        description: "{{ $value }} settlement failures per second. Blockchain settlement may be failing."
+
+    - alert: TradingOrderBookImbalance
+      expr: abs(sum(attribute_order_quantity{attribute_order_side="buy"}) - sum(attribute_order_quantity{attribute_order_side="sell"})) / (sum(attribute_order_quantity{attribute_order_side="buy"}) + sum(attribute_order_quantity{attribute_order_side="sell"})) > 0.8
+      for: 10m
+      labels:
+        severity: warning
+        team: trading
+        component: trading-service
+      annotations:
+        summary: "Significant order book imbalance detected"
+        description: "Buy/sell imbalance is {{ $value | humanizePercentage }}. Market may be experiencing unusual pressure."
+
+    - alert: TradingDCAMissedExecutions
+      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-trading-service", name=~".*dca.*", status_code="ERROR"}[5m])) > 5
+      for: 5m
+      labels:
+        severity: warning
+        team: trading
+        component: trading-service
+      annotations:
+        summary: "DCA order executions are failing"
+        description: "{{ $value }} DCA execution failures per 5 minutes. Users' recurring orders may not be executing."
+
+  # =============================================================================
+  # Oracle Bridge & IoT Alerts
+  # =============================================================================
+  - name: gridtokenx.oracle_bridge.alerts
+    rules:
+    - alert: OracleRelayQueueSaturation
+      expr: oracle_relay_queue_depth > 800
+      for: 5m
+      labels:
+        severity: critical
+        team: grid-ops
+        component: oracle-bridge
+      annotations:
+        summary: "Oracle Bridge relay queue is near saturation!"
+        description: "Queue depth is {{ $value }} (limit 1024) for more than 5 minutes. Downstream blockchain submission is likely bottlenecked."
+
+    - alert: OracleHighSubmissionLatency
+      expr: histogram_quantile(0.95, sum(rate(oracle_relay_submission_duration_seconds_bucket[5m])) by (le)) > 30
+      for: 10m
+      labels:
+        severity: warning
+        team: grid-ops
+        component: oracle-bridge
+      annotations:
+        summary: "High oracle submission latency detected"
+        description: "The 95th percentile for Solana settlements is {{ $value | humanizeDuration }}. This exceeds the 30s threshold."
+
+    - alert: OracleSubmissionFailureSpike
+      expr: sum(rate(oracle_relay_submissions_total{status="failure"}[5m])) / sum(rate(oracle_relay_submissions_total[5m])) > 0.05
+      for: 2m
+      labels:
+        severity: critical
+        team: grid-ops
+        component: oracle-bridge
+      annotations:
+        summary: "High oracle submission failure rate!"
+        description: "More than 5% of attestation batches are failing to settle on-chain in the last 2 minutes."
+
+    - alert: OracleNoIngestionActivity
+      expr: rate(oracle_relay_ingestion_total[5m]) == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: grid-ops
+        component: oracle-bridge
+      annotations:
+        summary: "Zero ingestion activity from Oracle Bridge"
+        description: "No new attestation batches have been received in the last 5 minutes. Check Oracle Bridge health."
+
+    - alert: SmartMeterNoReadings
+      expr: rate(signoz_spans_total{name=~".*meter.*reading.*"}[5m]) == 0
+      for: 5m
+      labels:
+        severity: warning
+        team: grid-ops
+        component: smartmeter
+      annotations:
+        summary: "No smart meter readings received"
+        description: "No meter readings have been ingested in the last 5 minutes. Check IoT gateway and simulators."
+
+    - alert: SmartMeterHighErrorRate
+      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-smartmeter-simulator", status_code="ERROR"}[5m])) / sum(rate(signoz_calls_total{service_name="gridtokenx-smartmeter-simulator"}[5m])) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        team: grid-ops
+        component: smartmeter
+      annotations:
+        summary: "Smart meter simulator error rate is high"
+        description: "Error rate is {{ $value | humanizePercentage }}. Meter simulation may be misconfigured."
+
+  # =============================================================================
+  # Blockchain & Solana Alerts
+  # =============================================================================
+  - name: gridtokenx.blockchain.alerts
+    rules:
+    - alert: BlockchainTransactionFailureRate
+      expr: sum(rate(signoz_calls_total{name=~".*transaction.*", status_code="ERROR"}[5m])) / sum(rate(signoz_calls_total{name=~".*transaction.*"}[5m])) > 0.1
+      for: 3m
+      labels:
+        severity: critical
+        team: blockchain
+        component: solana
+      annotations:
+        summary: "Blockchain transaction failure rate is high"
+        description: "{{ $value | humanizePercentage }} of transactions are failing. Check RPC connectivity and program state."
+
+    - alert: BlockchainHighConfirmationLatency
+      expr: histogram_quantile(0.95, sum(rate(signoz_spans_duration_seconds_bucket{name=~".*confirm.*"}[5m])) by (le)) > 60
+      for: 5m
+      labels:
+        severity: warning
+        team: blockchain
+        component: solana
+      annotations:
+        summary: "Solana transaction confirmation latency is high"
+        description: "P95 confirmation time is {{ $value | humanizeDuration }}. Network congestion or RPC issues may be present."
+
+    - alert: BlockchainRPCErrorRate
+      expr: sum(rate(signoz_calls_total{attribute_rpc_method=~".+", status_code="ERROR"}[5m])) / sum(rate(signoz_calls_total{attribute_rpc_method=~".+"}[5m])) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: blockchain
+        component: solana
+      annotations:
+        summary: "Solana RPC error rate is elevated"
+        description: "RPC error rate is {{ $value | humanizePercentage }}. Check RPC endpoint health and rate limits."
+
+    - alert: BlockchainProgramCallFailure
+      expr: sum(rate(signoz_calls_total{name=~".*program.*", status_code="ERROR"}[5m])) > 10
+      for: 2m
+      labels:
+        severity: critical
+        team: blockchain
+        component: solana
+      annotations:
+        summary: "Smart program calls are failing"
+        description: "{{ $value }} program call failures per second. Smart contract logic or permissions may be misconfigured."
+
+    - alert: BlockchainPriorityFeeSpike
+      expr: avg(attribute_priority_fee) > 100000
+      for: 10m
+      labels:
+        severity: warning
+        team: blockchain
+        component: solana
+      annotations:
+        summary: "Solana priority fees are elevated"
+        description: "Average priority fee is {{ $value }} lamports. Network congestion is increasing transaction costs."
+
+  # =============================================================================
+  # Energy Token & REC Alerts
+  # =============================================================================
+  - name: gridtokenx.energy_token.alerts
+    rules:
+    - alert: TokenMintingFailure
+      expr: sum(rate(signoz_calls_total{name=~".*mint.*", status_code="ERROR"}[5m])) > 0
+      for: 2m
+      labels:
+        severity: critical
+        team: platform
+        component: energy-token
+      annotations:
+        summary: "Energy token minting is failing"
+        description: "{{ $value }} minting failures per second. Token issuance for energy production is blocked."
+
+    - alert: RECIssuanceDelay
+      expr: histogram_quantile(0.95, sum(rate(signoz_spans_duration_seconds_bucket{name=~".*rec.*issue.*"}[5m])) by (le)) > 300
+      for: 15m
+      labels:
+        severity: warning
+        team: platform
+        component: energy-token
+      annotations:
+        summary: "REC issuance is experiencing delays"
+        description: "P95 REC issuance time is {{ $value | humanizeDuration }}. Certificate generation is slower than expected."
+
+    - alert: TokenTransferAnomaly
+      expr: rate(signoz_calls_total{name=~".*transfer.*"}[5m]) > 500
+      for: 10m
+      labels:
+        severity: warning
+        team: security
+        component: energy-token
+      annotations:
+        summary: "Unusual token transfer activity"
+        description: "Token transfer rate is {{ $value }} transfers/s. This may indicate wash trading or token manipulation."
+
+  # =============================================================================
+  # VPP (Virtual Power Plant) Alerts
+  # =============================================================================
+  - name: gridtokenx.vpp.alerts
+    rules:
+    - alert: VPPDispatchFailure
+      expr: sum(rate(signoz_calls_total{name=~".*dispatch.*", status_code="ERROR"}[5m])) > 5
+      for: 3m
+      labels:
+        severity: critical
+        team: grid-ops
+        component: vpp
+      annotations:
+        summary: "VPP asset dispatch commands are failing"
+        description: "{{ $value }} dispatch failures per second. VPP cannot control distributed energy assets."
+
+    - alert: VPPCapacityUtilizationHigh
+      expr: sum(attribute_used_capacity) / sum(attribute_total_capacity) > 0.95
+      for: 10m
+      labels:
+        severity: warning
+        team: grid-ops
+        component: vpp
+      annotations:
+        summary: "VPP capacity utilization is critically high"
+        description: "VPP is operating at {{ $value | humanizePercentage }} capacity. May not be able to respond to additional grid requests."
+
+    - alert: VPPAssetOffline
+      expr: count(attribute_asset_status="offline") / count(attribute_asset_status) > 0.2
+      for: 5m
+      labels:
+        severity: warning
+        team: grid-ops
+        component: vpp
+      annotations:
+        summary: "Significant VPP assets are offline"
+        description: "{{ $value | humanizePercentage }} of VPP assets are offline. Aggregation capacity is reduced."
+
+    - alert: DemandResponseEventFailure
+      expr: sum(rate(signoz_calls_total{name=~".*demand.*response.*", status_code="ERROR"}[5m])) > 0
+      for: 2m
+      labels:
+        severity: critical
+        team: grid-ops
+        component: vpp
+      annotations:
+        summary: "Demand response events are failing"
+        description: "Demand response execution failures detected. Grid stability services may be impacted."
+
+  # =============================================================================
+  # Governance Alerts
+  # =============================================================================
+  - name: gridtokenx.governance.alerts
+    rules:
+    - alert: GovernanceVotingAnomaly
+      expr: rate(signoz_calls_total{name=~".*vote.*"}[5m]) > 100
+      for: 5m
+      labels:
+        severity: warning
+        team: governance
+        component: dao
+      annotations:
+        summary: "Unusual voting activity detected"
+        description: "Voting rate is {{ $value }} votes/s. This may indicate vote manipulation or coordinated voting attack."
+
+    - alert: GovernanceProposalExecutionFailure
+      expr: sum(rate(signoz_calls_total{name=~".*execute.*proposal.*", status_code="ERROR"}[5m])) > 0
+      for: 2m
+      labels:
+        severity: critical
+        team: governance
+        component: dao
+      annotations:
+        summary: "Governance proposal execution is failing"
+        description: "Approved proposals cannot be executed. Smart contract permissions or state may be misconfigured."
+
+    - alert: GovernanceLowParticipation
+      expr: avg(attribute_participation_rate) < 0.1
+      for: 24h
+      labels:
+        severity: info
+        team: governance
+        component: dao
+      annotations:
+        summary: "Governance participation rate is low"
+        description: "Average participation rate is {{ $value | humanizePercentage }}. Community engagement may need improvement."
+
+  # =============================================================================
+  # Infrastructure Alerts (Database, Redis, Kafka)
+  # =============================================================================
+  - name: gridtokenx.infrastructure.alerts
+    rules:
+    - alert: PostgreSQLDown
+      expr: pg_up == 0
+      for: 1m
+      labels:
+        severity: critical
+        team: platform
+        component: postgresql
+      annotations:
+        summary: "PostgreSQL database is down"
+        description: "PostgreSQL instance is unreachable. All database-dependent services are affected."
+
+    - alert: PostgreSQLHighConnectionUsage
+      expr: pg_stat_activity_count / pg_settings_max_connections > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+        component: postgresql
+      annotations:
+        summary: "PostgreSQL connection pool usage is high"
+        description: "Connection pool usage is {{ $value | humanizePercentage }}. Consider increasing max_connections or optimizing queries."
+
+    - alert: PostgreSQLSlowQueries
+      expr: rate(pg_stat_statements_seconds_total{total_time > 1000}[5m]) > 10
+      for: 10m
+      labels:
+        severity: warning
+        team: platform
+        component: postgresql
+      annotations:
+        summary: "PostgreSQL slow query rate is elevated"
+        description: "{{ $value }} queries per minute are taking over 1 second. Query optimization may be needed."
+
+    - alert: RedisDown
+      expr: redis_up == 0
+      for: 1m
+      labels:
+        severity: critical
+        team: platform
+        component: redis
+      annotations:
+        summary: "Redis cache is down"
+        description: "Redis instance is unreachable. Caching and session management are affected."
+
+    - alert: RedisHighMemoryUsage
+      expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+        component: redis
+      annotations:
+        summary: "Redis memory usage is critically high"
+        description: "Memory usage is {{ $value | humanizePercentage }}. Redis may start evicting keys or reject writes."
+
+    - alert: KafkaConsumerLagHigh
+      expr: kafka_consumer_group_lag > 10000
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+        component: kafka
+      annotations:
+        summary: "Kafka consumer lag is high"
+        description: "Consumer group {{ $labels.group }} has lag of {{ $value }} messages. Event processing is falling behind."
+
+    - alert: KafkaBrokerDown
+      expr: kafka_brokers < 1
+      for: 1m
+      labels:
+        severity: critical
+        team: platform
+        component: kafka
+      annotations:
+        summary: "Kafka broker is down"
+        description: "No Kafka brokers are available. Event streaming is completely stopped."
+
+    - alert: InfluxDBDown
+      expr: influxdb_up == 0
+      for: 1m
+      labels:
+        severity: critical
+        team: platform
+        component: influxdb
+      annotations:
+        summary: "InfluxDB is down"
+        description: "InfluxDB instance is unreachable. Time-series data (meter readings) cannot be stored."
+
+  # =============================================================================
+  # Security & Compliance Alerts
+  # =============================================================================
+  - name: gridtokenx.security.alerts
+    rules:
+    - alert: SecurityHighAuthFailureRate
+      expr: sum(rate(signoz_calls_total{attribute_auth_result="failure"}[5m])) / sum(rate(signoz_calls_total{attribute_auth_result=~".+"}[5m])) > 0.3
+      for: 5m
+      labels:
+        severity: critical
+        team: security
+        component: platform
+      annotations:
+        summary: "Platform-wide authentication failure rate is critical"
+        description: "Auth failure rate is {{ $value | humanizePercentage }}. Possible coordinated attack or credential breach."
+
+    - alert: SecurityRateLimitTriggered
+      expr: sum(rate(signoz_calls_total{name=~".*rate_limit.*"}[5m])) > 100
+      for: 5m
+      labels:
+        severity: warning
+        team: security
+        component: platform
+      annotations:
+        summary: "High rate limiting activity detected"
+        description: "{{ $value }} rate limit events per second. Possible DDoS or API abuse."
+
+    - alert: SecuritySuspiciousActivitySpike
+      expr: sum(rate(signoz_calls_total{attribute_security_flag="suspicious"}[5m])) > 10
+      for: 5m
+      labels:
+        severity: critical
+        team: security
+        component: platform
+      annotations:
+        summary: "Suspicious activity spike detected"
+        description: "{{ $value }} suspicious activities per second. Security team should investigate immediately."
+
+    - alert: SecurityDataAccessViolation
+      expr: sum(rate(signoz_calls_total{attribute_authz_result="denied", name=~".*access.*"}[5m])) > 20
+      for: 5m
+      labels:
+        severity: warning
+        team: security
+        component: platform
+      annotations:
+        summary: "High rate of unauthorized access attempts"
+        description: "{{ $value }} access denials per second. Possible privilege escalation attempts."
+
+    - alert: ComplianceKYCBacklog
+      expr: sum(attribute_kyc_pending_count) > 100
+      for: 1h
+      labels:
+        severity: warning
+        team: compliance
+        component: platform
+      annotations:
+        summary: "KYC verification backlog is growing"
+        description: "{{ $value }} pending KYC verifications. Compliance team may need additional resources."
+
+  # =============================================================================
+  # System Resource Alerts
+  # =============================================================================
+  - name: gridtokenx.system.alerts
+    rules:
+    - alert: ContainerHighCPU
+      expr: rate(container_cpu_usage_seconds_total{name=~"gridtokenx.*"}[5m]) * 100 > 80
+      for: 10m
+      labels:
+        severity: warning
+        team: platform
+        component: infrastructure
+      annotations:
+        summary: "Container {{ $labels.name }} CPU usage is high"
+        description: "CPU usage is {{ $value | humanizePercentage }}. Container may need more resources or optimization."
+
+    - alert: ContainerHighMemory
+      expr: container_memory_usage_bytes{name=~"gridtokenx.*"} / container_spec_memory_limit_bytes{name=~"gridtokenx.*"} > 0.9
+      for: 10m
+      labels:
+        severity: warning
+        team: platform
+        component: infrastructure
+      annotations:
+        summary: "Container {{ $labels.name }} memory usage is critical"
+        description: "Memory usage is {{ $value | humanizePercentage }} of limit. OOM kill may occur."
+
+    - alert: ContainerRestartLoop
+      expr: increase(container_last_seen{name=~"gridtokenx.*"}[5m]) > 6
+      for: 5m
+      labels:
+        severity: critical
+        team: platform
+        component: infrastructure
+      annotations:
+        summary: "Container {{ $labels.name }} is in restart loop"
+        description: "Container has restarted {{ $value }} times in 5 minutes. Application crash or health check failure."
+
+    - alert: DiskSpaceLow
+      expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+      for: 10m
+      labels:
+        severity: critical
+        team: platform
+        component: infrastructure
+      annotations:
+        summary: "Disk space is critically low on {{ $labels.mountpoint }}"
+        description: "Only {{ $value | humanizePercentage }} disk space remaining. Immediate cleanup required."

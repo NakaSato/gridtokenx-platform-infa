@@ -11,7 +11,7 @@ services:
     command:
       - "postgres"
       - "-c"
-      - "max_connections=100"
+      - "max_connections=200"
       - "-c"
       - "shared_buffers=256MB"
       - "-c"
@@ -46,10 +46,11 @@ services:
       - "-c"
       - "synchronous_commit=off"
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/setup-replication.sh:/docker-entrypoint-initdb.d/setup-replication.sh:ro
+      - ./scripts/init-multi-db.sql:/docker-entrypoint-initdb.d/init-multi-db.sql:ro
     networks:
       - gridtokenx-network
     deploy:
@@ -202,29 +203,39 @@ services:
       retries: 5
       start_period: 30s
 
-  # Nginx Load Balancer for API Gateway Nodes
-  nginx:
-    image: nginx:alpine
-    container_name: gridtokenx-nginx
+  # Kong (API Gateway & Management)
+  kong:
+    image: kong/kong-gateway:latest
+    container_name: gridtokenx-kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+      KONG_PROXY_LISTEN: 0.0.0.0:4000, 0.0.0.0:8443 ssl
     ports:
-      - "4000:4000"
+      - "4001:4000"
+      - "8443:8443"
+      - "8001:8001"
+      - "8444:8444"
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/kong/kong.yml:/usr/local/kong/declarative/kong.yml:ro
     networks:
       - gridtokenx-network
     depends_on:
       - postgres
       - redis
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   # API Gateway (Rust/Axum)
-  apigateway:
+  api-gateway:
     build:
       context: ./
-      dockerfile: gridtokenx-apigateway/Dockerfile
-    container_name: gridtokenx-apigateway
+      dockerfile: gridtokenx-api/Dockerfile
+    container_name: gridtokenx-api-gateway
     ports:
       - "${APIGATEWAY_PORT}:4000"
     volumes:
@@ -232,166 +243,150 @@ services:
     environment:
       # Application Configuration
       TZ: ${TZ}
-      PORT: ${PORT}
+      PORT: 4000
       SERVER_HOST: ${SERVER_HOST}
-      SERVER_PORT: ${SERVER_PORT}
       ENVIRONMENT: ${ENVIRONMENT}
       RUST_LOG: ${RUST_LOG}
       LOG_LEVEL: ${LOG_LEVEL}
-      LOG_FORMAT: ${LOG_FORMAT}
-      AUDIT_LOG_ENABLED: ${AUDIT_LOG_ENABLED}
-      TEST_MODE: ${TEST_MODE}
-
-      # Database Configuration
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      MAX_CONNECTIONS: ${MAX_CONNECTIONS}
-      MIN_CONNECTIONS: ${MIN_CONNECTIONS}
-      DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS}
-      DATABASE_MIN_CONNECTIONS: ${DATABASE_MIN_CONNECTIONS}
-
-      # Redis Configuration
-      REDIS_URL: redis://redis:${REDIS_PORT}
-      REDIS_POOL_SIZE: ${REDIS_POOL_SIZE}
-      REDIS_MAX_CONNECTIONS: ${REDIS_MAX_CONNECTIONS}
-      REDIS_CONNECTION_TIMEOUT: ${REDIS_CONNECTION_TIMEOUT}
-      REDIS_COMMAND_TIMEOUT: ${REDIS_COMMAND_TIMEOUT}
-      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT}
-
-      # InfluxDB Configuration
-      INFLUXDB_URL: ${INFLUXDB_URL}
-      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
-      INFLUXDB_ORG: ${INFLUXDB_ORG}
-      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
-
-      # Smart Meter Simulator Configuration (for P2P cost calculation)
-      SIMULATOR_URL: ${SIMULATOR_URL}
-
-      # Solana Blockchain Configuration
-      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-http://host.docker.internal:8899}
-      SOLANA_WS_URL: ${SOLANA_WS_URL:-ws://host.docker.internal:8900}
-      SOLANA_CLUSTER: ${SOLANA_CLUSTER}
-      TOKENIZATION_ENABLE_REAL_BLOCKCHAIN: "true"
-
-      # Program IDs
-      REGISTRY_PROGRAM_ID: ${REGISTRY_PROGRAM_ID}
-      ENERGY_TOKEN_PROGRAM_ID: "HaT3koMseafcCB9aUQUCrSLMDfN1km7Xik9UhZSG9UV6"
-      TRADING_PROGRAM_ID: ${TRADING_PROGRAM_ID}
-      ORACLE_PROGRAM_ID: ${ORACLE_PROGRAM_ID}
-      GOVERNANCE_PROGRAM_ID: ${GOVERNANCE_PROGRAM_ID}
-      ENERGY_TOKEN_MINT: ${ENERGY_TOKEN_MINT}
-      ENGINEERING_KEYPAIR_PATH: ${ENGINEERING_KEYPAIR_PATH}
-      ORACLE_KEYPAIR_PATH: ${ORACLE_KEYPAIR_PATH}
-      ENGINEERING_DEPT_KEYPAIR_PATH: ${ENGINEERING_DEPT_KEYPAIR_PATH}
-
-      # Authentication & Security
+      AUDIT_LOG_ENABLED: ${AUDIT_LOG_ENABLED:-true}
+      TEST_MODE: ${TEST_MODE:-false}
       JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRATION: ${JWT_EXPIRATION}
-      API_KEY_SECRET: ${API_KEY_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:${REDIS_PORT}
+      INFLUXDB_URL: ${INFLUXDB_URL:-http://influxdb:8086}
+      IAM_SERVICE_URL: http://iam-service:8080
+      IAM_GRPC_URL: http://iam-service:8090
+      TRADING_SERVICE_URL: http://trading-service:8092
+      TRADING_GRPC_URL: http://trading-service:8092
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-http://host.orbstack.local:8899}
+      SOLANA_WS_URL: ${SOLANA_WS_URL:-ws://host.orbstack.local:8900}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: gridtokenx-api-gateway
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-always_on}
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${ENVIRONMENT:-development}
+      SOLANA_CLUSTER: ${SOLANA_CLUSTER:-localnet}
+      SOLANA_REGISTRY_PROGRAM_ID: ${SOLANA_REGISTRY_PROGRAM_ID}
+      SOLANA_TRADING_PROGRAM_ID: ${SOLANA_TRADING_PROGRAM_ID}
+      SOLANA_ORACLE_PROGRAM_ID: ${SOLANA_ORACLE_PROGRAM_ID}
+      SOLANA_GOVERNANCE_PROGRAM_ID: ${SOLANA_GOVERNANCE_PROGRAM_ID}
+      SOLANA_ENERGY_TOKEN_PROGRAM_ID: ${SOLANA_ENERGY_TOKEN_PROGRAM_ID}
+      ENERGY_TOKEN_MINT: ${ENERGY_TOKEN_MINT}
       ENGINEERING_API_KEY: ${ENGINEERING_API_KEY}
-      HMAC_SECRET: ${HMAC_SECRET}
+      API_KEY_SECRET: ${API_KEY_SECRET}
       ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
-
-      # Password Requirements
-      PASSWORD_MIN_LENGTH: ${PASSWORD_MIN_LENGTH}
-      PASSWORD_REQUIRE_UPPERCASE: ${PASSWORD_REQUIRE_UPPERCASE}
-      PASSWORD_REQUIRE_LOWERCASE: ${PASSWORD_REQUIRE_LOWERCASE}
-      PASSWORD_REQUIRE_NUMBERS: ${PASSWORD_REQUIRE_NUMBERS}
-      PASSWORD_REQUIRE_SPECIAL_CHARS: ${PASSWORD_REQUIRE_SPECIAL_CHARS}
-
-      # Security Settings
-      SECURE_COOKIES: ${SECURE_COOKIES}
-      SESSION_TIMEOUT: ${SESSION_TIMEOUT}
-      MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS}
-      LOCKOUT_DURATION: ${LOCKOUT_DURATION}
-
-      # Email Configuration
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USERNAME: ${SMTP_USERNAME:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME}
-      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS}
-      SMTP_FROM: ${SMTP_FROM}
-      EMAIL_VERIFICATION_ENABLED: ${EMAIL_VERIFICATION_ENABLED}
-      EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED}
-      EMAIL_VERIFICATION_EXPIRY_HOURS: ${EMAIL_VERIFICATION_EXPIRY_HOURS}
-      EMAIL_VERIFICATION_BASE_URL: ${EMAIL_VERIFICATION_BASE_URL}
-      EMAIL_AUTO_LOGIN_AFTER_VERIFICATION: ${EMAIL_AUTO_LOGIN_AFTER_VERIFICATION}
-      ENABLE_EMAIL_VERIFICATION: ${ENABLE_EMAIL_VERIFICATION}
-      ENABLE_EMAIL_NOTIFICATIONS: ${ENABLE_EMAIL_NOTIFICATIONS}
-
-      # CORS Configuration
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
-      CORS_ALLOWED_METHODS: ${CORS_ALLOWED_METHODS}
-      CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS}
-      CORS_EXPOSE_HEADERS: ${CORS_EXPOSE_HEADERS}
-      CORS_MAX_AGE: ${CORS_MAX_AGE}
-
-      # Rate Limiting
-      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED}
-      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW}
-      RATE_LIMIT_AUTH_REQUESTS: ${RATE_LIMIT_AUTH_REQUESTS}
-      RATE_LIMIT_AUTH_WINDOW: ${RATE_LIMIT_AUTH_WINDOW}
-      RATE_LIMIT_TRADING_REQUESTS: ${RATE_LIMIT_TRADING_REQUESTS}
-      RATE_LIMIT_TRADING_WINDOW: ${RATE_LIMIT_TRADING_WINDOW}
-
-      # Monitoring & Observability
-      ENABLE_METRICS: ${ENABLE_METRICS}
-      ENABLE_TRACING: ${ENABLE_TRACING}
-      PROMETHEUS_METRICS_ENABLED: ${PROMETHEUS_METRICS_ENABLED}
-      METRICS_PORT: ${METRICS_PORT}
-
-      # Feature Flags
-      ENABLE_WEBSOCKET: ${ENABLE_WEBSOCKET}
-      ENABLE_BLOCKCHAIN_INTEGRATION: ${ENABLE_BLOCKCHAIN_INTEGRATION}
-      ENABLE_PUSH_NOTIFICATIONS: ${ENABLE_PUSH_NOTIFICATIONS}
-      ENABLE_SMS_NOTIFICATIONS: ${ENABLE_SMS_NOTIFICATIONS}
-      ENABLE_MARKET_DYNAMICS: ${ENABLE_MARKET_DYNAMICS}
-
-      # Cache Configuration
-      CACHE_TTL_DEFAULT: ${CACHE_TTL_DEFAULT}
-      CACHE_TTL_USER_SESSION: ${CACHE_TTL_USER_SESSION}
-      CACHE_TTL_MARKET_DATA: ${CACHE_TTL_MARKET_DATA}
-      CACHE_TTL_ANALYTICS: ${CACHE_TTL_ANALYTICS}
-
-      # Tokenization Configuration
-      TOKENIZATION_KWH_TO_TOKEN_RATIO: ${TOKENIZATION_KWH_TO_TOKEN_RATIO}
-      TOKENIZATION_DECIMALS: ${TOKENIZATION_DECIMALS}
-      TOKENIZATION_MAX_READING_KWH: ${TOKENIZATION_MAX_READING_KWH}
-      TOKENIZATION_AUTO_MINT_ENABLED: ${TOKENIZATION_AUTO_MINT_ENABLED}
-      TOKENIZATION_POLLING_INTERVAL_SECS: ${TOKENIZATION_POLLING_INTERVAL_SECS}
-      TOKENIZATION_BATCH_SIZE: ${TOKENIZATION_BATCH_SIZE}
-
-      # Oracle Configuration
-      PROCESSING_INTERVAL: ${PROCESSING_INTERVAL}
-      ENGINEERING_AUTHORITY: ${ENGINEERING_AUTHORITY}
-
-      # REC Configuration
-      REC_AUTHORITY_ONLY: ${REC_AUTHORITY_ONLY}
-      REC_ISSUING_AUTHORITY: ${REC_ISSUING_AUTHORITY}
-      REC_CERTIFICATION_ENABLED: ${REC_CERTIFICATION_ENABLED}
-      CARBON_OFFSET_RATE: ${CARBON_OFFSET_RATE}
-
-      # Kafka Configuration
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
-      KAFKA_TOPIC: ${KAFKA_TOPIC:-meter-readings}
-      KAFKA_CONSUMER_GROUP: ${KAFKA_CONSUMER_GROUP:-gridtokenx-apigateway}
-      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
+      MAX_CONNECTIONS: ${MAX_CONNECTIONS:-50}
+      REDIS_POOL_SIZE: ${REDIS_POOL_SIZE:-20}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-30}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-60}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      mailpit:
         condition: service_healthy
       kafka:
         condition: service_healthy
     networks:
       - gridtokenx-network
     restart: unless-stopped
+  iam-service:
+    build:
+      context: ./
+      dockerfile: gridtokenx-iam-service/Dockerfile
+    container_name: gridtokenx-iam-service
+    ports:
+      - "4002:8080"
+      - "4012:8090"
+    environment:
+      DATABASE_URL: ${IAM_DATABASE_URL}
+      REDIS_URL: redis://redis:${REDIS_PORT}
+      PORT: 8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: gridtokenx-iam-service
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${ENVIRONMENT:-development}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      RUST_LOG: ${RUST_LOG:-info}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
+      API_KEY_SECRET: ${API_KEY_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # Trading Service
+  trading-service:
+    build:
+      context: ./
+      dockerfile: gridtokenx-trading-service/Dockerfile
+    container_name: gridtokenx-trading-service
+    ports:
+      - "8092:8092"
+      - "8093:8093"
+    volumes:
+      - ./dev-wallet.json:/app/dev-wallet.json
+    environment:
+      DATABASE_URL: ${TRADING_DATABASE_URL}
+      REDIS_URL: redis://redis:${REDIS_PORT}
+      RUST_LOG: ${RUST_LOG:-info}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: gridtokenx-trading-service
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${ENVIRONMENT:-development}
+      JWT_SECRET: ${JWT_SECRET}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-http://host.orbstack.local:8899}
+      SOLANA_WS_URL: ${SOLANA_WS_URL:-ws://host.orbstack.local:8900}
+      SOLANA_CLUSTER: ${SOLANA_CLUSTER:-localnet}
+      SOLANA_REGISTRY_PROGRAM_ID: ${SOLANA_REGISTRY_PROGRAM_ID}
+      SOLANA_TRADING_PROGRAM_ID: ${SOLANA_TRADING_PROGRAM_ID}
+      SOLANA_ORACLE_PROGRAM_ID: ${SOLANA_ORACLE_PROGRAM_ID}
+      SOLANA_GOVERNANCE_PROGRAM_ID: ${SOLANA_GOVERNANCE_PROGRAM_ID}
+      SOLANA_ENERGY_TOKEN_PROGRAM_ID: ${SOLANA_ENERGY_TOKEN_PROGRAM_ID}
+      ENERGY_TOKEN_MINT: ${ENERGY_TOKEN_MINT}
+      AES_KEY_BASE64: ${AES_KEY_BASE64}
+      PAYER_PRIVATE_KEY: ${PAYER_PRIVATE_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # Oracle Bridge + IoT Ingestion Gateway
+  oracle-bridge:
+    build:
+      context: ./
+      dockerfile: gridtokenx-oracle-bridge/Dockerfile
+    container_name: gridtokenx-oracle-bridge
+    ports:
+      - "${IOT_GATEWAY_PORT:-4010}:4010"
+    environment:
+      RUST_LOG: ${RUST_LOG:-info}
+      REDIS_URL: redis://redis:6379
+      API_GATEWAY_URL: http://api-gateway:4000
+      IOT_GATEWAY_PORT: 4010
+      IAM_SERVICE_URL: http://iam-service:8080
+      GRIDTOKENX_API_KEYS: ${ENGINEERING_API_KEY:-engineering-department-api-key-2025}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: gridtokenx-oracle-bridge
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${ENVIRONMENT:-development}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
 
   # Trading Platform (Next.js)
-  trading:
+  trading-ui:
     build:
       context: ./gridtokenx-trading
       dockerfile: Dockerfile
@@ -408,36 +403,7 @@ services:
       - gridtokenx-network
     restart: unless-stopped
 
-  # Prometheus (Metrics Collection)
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: gridtokenx-prometheus
-    volumes:
-      - ./gridtokenx-apigateway/docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
-    networks:
-      - gridtokenx-network
-    restart: unless-stopped
-
-  # Grafana (Visualization)
-  grafana:
-    image: grafana/grafana:latest
-    container_name: gridtokenx-grafana
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./gridtokenx-apigateway/docker/grafana/provisioning:/etc/grafana/provisioning
-    ports:
-      - "3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    networks:
-      - gridtokenx-network
-    depends_on:
-      - prometheus
-    restart: unless-stopped
+  # Mailpit SMTP Server (Development Email Testing)
 
   # Mailpit SMTP Server (Development Email Testing)
   mailpit:
@@ -482,6 +448,10 @@ services:
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       API_GATEWAY_URL: ${API_GATEWAY_URL}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: gridtokenx-smartmeter-simulator
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${ENVIRONMENT:-development}
     depends_on:
       kafka:
         condition: service_healthy
@@ -509,6 +479,202 @@ services:
       - gridtokenx-network
     restart: unless-stopped
 
+  # Loki - Log Aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: gridtokenx-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./docker/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+    command: -config.file=/etc/loki/loki-config.yaml
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # Tempo - Tracing Backend
+  tempo:
+    image: grafana/tempo:2.6.0
+    container_name: gridtokenx-tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "3200:3200"   # Tempo HTTP
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # ============================================
+  # Monitoring Stack: Prometheus + Grafana
+  # ============================================
+
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: gridtokenx-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--enable-feature=remote-write-receiver'
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # PostgreSQL Exporter
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: gridtokenx-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    ports:
+      - "9187:9187"
+    networks:
+      - gridtokenx-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Redis Exporter
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: gridtokenx-redis-exporter
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    ports:
+      - "9121:9121"
+    networks:
+      - gridtokenx-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Kafka Exporter
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: gridtokenx-kafka-exporter
+    command: ["--kafka.server=kafka:9092"]
+    ports:
+      - "9308:9308"
+    networks:
+      - gridtokenx-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Node Exporter (Host Metrics)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: gridtokenx-node-exporter
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro
+    ports:
+      - "9100:9100"
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # cAdvisor (Container Metrics)
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: gridtokenx-cadvisor
+    ports:
+      - "9082:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - gridtokenx-network
+    restart: unless-stopped
+
+  # Grafana - Visualization
+  grafana:
+    image: grafana/grafana:11.5.0
+    container_name: gridtokenx-grafana
+    ports:
+      - "3001:3000"  # Changed to 3001 to avoid conflict
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana/dashboards:/etc/grafana/dashboards:ro
+    networks:
+      - gridtokenx-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # OTEL Collector (Ingestion Agent)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.100.0
+    container_name: gridtokenx-otel-collector
+    command: ["--config", "/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/hostfs:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    ports:
+      - "4317:4317"     # OTLP gRPC receiver
+      - "4318:4318"     # OTLP HTTP receiver
+      - "8888:8888"     # Monitoring metrics
+      - "13133:13133"   # Health check
+    networks:
+      - gridtokenx-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+    restart: unless-stopped
+
 networks:
   gridtokenx-network:
     driver: bridge
@@ -521,6 +687,8 @@ volumes:
   influxdb_data:
   influxdb_config:
   mailpit_data:
+  kafka_data:
+  loki_data:
+  tempo_data:
   prometheus_data:
   grafana_data:
-  kafka_data:

@@ -1,0 +1,54 @@
+{
+  "title": "GridTokenX - Oracle Bridge Overview",
+  "uid": "oracle-bridge-overview",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Ingestion Rate (Requests/sec)",
+      "targets": [
+        { "expr": "rate(oracle_relay_ingestion_total[1m])", "legendFormat": "Ingest Rate" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "type": "gauge",
+      "title": "Current Queue Depth",
+      "targets": [
+        { "expr": "oracle_relay_queue_depth" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1024,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 700 },
+              { "color": "red", "value": 900 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "type": "graph",
+      "title": "P99/P95 Blockchain Latency",
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum(rate(oracle_relay_submission_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p99" },
+        { "expr": "histogram_quantile(0.95, sum(rate(oracle_relay_submission_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "type": "graph",
+      "title": "Submission Outcomes (Success vs Failure)",
+      "targets": [
+        { "expr": "rate(oracle_relay_submissions_total{status='success'}[1m])", "legendFormat": "Success" },
+        { "expr": "rate(oracle_relay_submissions_total{status='failure'}[1m])", "legendFormat": "Failure" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}

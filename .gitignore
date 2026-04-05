@@ -1,14 +1,9 @@
-/gridtokenx-apigateway
-/gridtokenx-trading
-/gridtokenx-website
-/gridtokenx-smartmeter-simulator
-/gridtokenx-anchor
-/gridtokenx-portal
-/gridtokenx-explorer
 
+/test-ladger-oracle/
 *.pem
 .sqlx/*
 .vendor/*
+*.pid
 
 # Environment Variables
 .env

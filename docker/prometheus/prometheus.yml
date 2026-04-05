@@ -1,0 +1,42 @@
+# Prometheus configuration for GridTokenX
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # App metrics via OTEL remote write (no direct scrape needed)
+
+  # PostgreSQL Metrics
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgresql'
+
+  # Redis Metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'redis'
+
+  # Kafka Metrics
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+        labels:
+          service: 'kafka'
+
+  # Node Exporter (System Metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node'
+
+  # cAdvisor (Container Metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: 'cadvisor'

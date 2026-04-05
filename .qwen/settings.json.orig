@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo run *)",
+      "Bash(cargo build *)",
+      "Bash(docker *)",
+      "Bash(do *)",
+      "Bash(then *)",
+      "Bash(break)",
+      "Bash(fi)",
+      "Bash(sleep *)",
+      "Bash(done)"
+    ]
+  }
+}

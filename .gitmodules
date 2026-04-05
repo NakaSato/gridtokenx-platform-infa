@@ -2,7 +2,7 @@
 	path = gridtokenx-anchor
 	url = https://github.com/NakaSato/gridtokenx-anchor.git
 [submodule "gridtokenx-apigateway"]
-	path = gridtokenx-apigateway
+	path = gridtokenx-api
 	url = https://github.com/NakaSato/gridtokenx-apigateway.git
 [submodule "gridtokenx-smartmeter-simulator"]
 	path = gridtokenx-smartmeter-simulator
@@ -12,10 +12,25 @@
 	url = https://github.com/NakaSato/gridtokenx-trading.git
 [submodule "gridtokenx-wasm"]
 	path = gridtokenx-wasm
-	url = https://github.com/NakaSato/gridtokenx-wasm
+	url = https://github.com/NakaSato/gridtokenx-wasm.git
 [submodule "gridtokenx-explorer"]
 	path = gridtokenx-explorer
 	url = https://github.com/NakaSato/gridtokenx-explorer.git
 [submodule "gridtokenx-portal"]
 	path = gridtokenx-portal
-	url = git@github.com:NakaSato/gridtokenx-portal.git
+	url = https://github.com/NakaSato/gridtokenx-portal.git
+[submodule "gridtokenx-iam-service"]
+	path = gridtokenx-iam-service
+	url = https://github.com/NakaSato/gridtokenx-iam-service.git
+[submodule "gridtokenx-oracle-bridge"]
+	path = gridtokenx-oracle-bridge
+	url = https://github.com/NakaSato/gridtokenx-oracle-bridge.git
+[submodule "gridtokenx-trading-service"]
+	path = gridtokenx-trading-service
+	url = https://github.com/NakaSato/gridtokenx-trading-service.git
+[submodule "gridtokenx-edge-meter"]
+	path = gridtokenx-edge-meter
+	url = https://github.com/NakaSato/gridtokenx-edge-meter.git
+[submodule "gridtokenx-edge-meter-gateway"]
+	path = gridtokenx-edge-meter-gateway
+	url = https://github.com/NakaSato/gridtokenx-edge-meter-gateway.git

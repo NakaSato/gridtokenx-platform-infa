@@ -646,7 +646,7 @@ pub fn batch_update_readings(
 **Execute HFT Throughput Benchmark:**
 ```bash
 # Run the HFT throughput test
-./gridtokenx-apigateway/tests/scripts/test_hft_throughput.sh
+./gridtokenx-api/tests/scripts/test_hft_throughput.sh
 ```
 
 ### 11.2 Generate Reports and Update Paper

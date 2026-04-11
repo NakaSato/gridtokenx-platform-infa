@@ -261,7 +261,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum by (method, path) (rate(http_requests_total{job=\"gridtokenx-api\"}[2m]))",
+          "expr": "sum by (method, path) (rate(http_requests_total{job=\"gridtokenx-api-services\"}[2m]))",
           "legendFormat": "{{method}} {{path}}",
           "range": true,
           "refId": "A"
@@ -312,7 +312,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum by (method, path) (rate(http_request_duration_seconds_sum{job=\"gridtokenx-api\"}[2m]))\n/\nsum by (method, path) (rate(http_request_duration_seconds_count{job=\"gridtokenx-api\"}[2m]))",
+          "expr": "sum by (method, path) (rate(http_request_duration_seconds_sum{job=\"gridtokenx-api-services\"}[2m]))\n/\nsum by (method, path) (rate(http_request_duration_seconds_count{job=\"gridtokenx-api-services\"}[2m]))",
           "legendFormat": "{{method}} {{path}}",
           "range": true,
           "refId": "A"
@@ -348,7 +348,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum(http_requests_total{job=\"gridtokenx-api\"})",
+          "expr": "sum(http_requests_total{job=\"gridtokenx-api-services\"})",
           "legendFormat": "Total Requests",
           "range": true,
           "refId": "A"
@@ -384,7 +384,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "process_resident_memory_bytes{job=\"cadvisor\",name=\"gridtokenx-api-gateway\"}",
+          "expr": "process_resident_memory_bytes{job=\"cadvisor\",name=\"gridtokenx-api-services\"}",
           "hide": true,
           "legendFormat": "API Gateway",
           "range": true,
@@ -393,7 +393,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "process_resident_memory_bytes{service=\"gridtokenx-api-gateway\"}",
+          "expr": "process_resident_memory_bytes{service=\"gridtokenx-api-services\"}",
           "hide": false,
           "legendFormat": "API Gateway",
           "range": true,
@@ -439,7 +439,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum(rate(http_responses_total{job=\"gridtokenx-api\",status=~\"5..\"}[2m]))\n/\nsum(rate(http_requests_total{job=\"gridtokenx-api\"}[2m]))",
+          "expr": "sum(rate(http_responses_total{job=\"gridtokenx-api-services\",status=~\"5..\"}[2m]))\n/\nsum(rate(http_requests_total{job=\"gridtokenx-api-services\"}[2m]))",
           "legendFormat": "5xx Error Rate",
           "range": true,
           "refId": "A"
@@ -447,7 +447,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum(rate(http_responses_total{job=\"gridtokenx-api\",status=~\"4..\"}[2m]))\n/\nsum(rate(http_requests_total{job=\"gridtokenx-api\"}[2m]))",
+          "expr": "sum(rate(http_responses_total{job=\"gridtokenx-api-services\",status=~\"4..\"}[2m]))\n/\nsum(rate(http_requests_total{job=\"gridtokenx-api-services\"}[2m]))",
           "hide": false,
           "legendFormat": "4xx Error Rate",
           "range": true,

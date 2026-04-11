@@ -14,11 +14,11 @@ This document describes the Solana Anchor smart contract architecture for the Gr
 
 | Program | ID | Purpose | Language |
 |---------|-----|---------|----------|
-| **Registry** | `DVoD5K5YRuXXF54a3b6r282jRD8RmtVHGfpw55DHFVDe` | User & meter registration, identity management | Rust (Anchor) |
-| **Energy Token** | `ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno` | GRID token (energy-backed ERC-20 equivalent) | Rust (Anchor) |
-| **Trading** | `5yakTtiNHXHonCPqkwh1M22jujqugCJhEkYaHAoaB6pG` | Order book, matching, escrow, settlement | Rust (Anchor) |
-| **Oracle** | `Ad5crRxCcvKFAShAMYtRAD9XKak1cwH1FCE6TrpUA9i2` | Price feeds, grid data, external data verification | Rust (Anchor) |
-| **Governance** | `DksRNiZsEZ3zN8n8ZWfukFqi3z74e5865oZ8wFk38p4X` | Protocol upgrades, parameter changes, REC management | Rust (Anchor) |
+| **Registry** | `FmvDiFUWPrwXsqo7z7XnVniKbZDcz32U5HSDVwPug89c` | User & meter registration, identity management | Rust (Anchor) |
+| **Energy Token** | `n52aKuZwUeZAocpWqRZAJR4xFhQqAvaRE7Xepy2JBGk` | GRID token (energy-backed ERC-20 equivalent) | Rust (Anchor) |
+| **Trading** | `69dGpKu9a8EZiZ7orgfTH6CoGj9DeQHHkHBF2exSr8na` | Order book, matching, escrow, settlement | Rust (Anchor) |
+| **Oracle** | `JDUVXMkeGi4oxLp8njBaGScAFaVBBg7iGoiqcY1LxKop` | Price feeds, grid data, external data verification | Rust (Anchor) |
+| **Governance** | `DamT9e1VqbA5nSyFZHExKwQu6qs4L5FW6dirWCK8YLd4` | Protocol upgrades, parameter changes, REC management | Rust (Anchor) |
 
 ---
 
@@ -29,7 +29,7 @@ This document describes the Solana Anchor smart contract architecture for the Gr
 
 ### Program ID
 ```
-DVoD5K5YRuXXF54a3b6r282jRD8RmtVHGfpw55DHFVDe
+FmvDiFUWPrwXsqo7z7XnVniKbZDcz32U5HSDVwPug89c
 ```
 
 ### Accounts
@@ -232,7 +232,7 @@ pub struct MeterReadingUpdated {
 
 ### Program ID
 ```
-ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno
+n52aKuZwUeZAocpWqRZAJR4xFhQqAvaRE7Xepy2JBGk
 ```
 
 ### Token Specifications
@@ -407,7 +407,7 @@ CreateV1CpiBuilder::new(&ctx.accounts.metadata_program.to_account_info())
 
 ### Program ID
 ```
-5yakTtiNHXHonCPqkwh1M22jujqugCJhEkYaHAoaB6pG
+69dGpKu9a8EZiZ7orgfTH6CoGj9DeQHHkHBF2exSr8na
 ```
 
 ### Accounts
@@ -794,10 +794,10 @@ describe("Registry Program", () => {
 
 ## Related Documentation
 
-- [User Registration Workflow](./user-registration-workflow.md)
-- [P2P Trading Flow](./p2p-trading-flow.md)
+- [User Registration Workflow](../guides/user-registration-workflow.md)
+- [P2P Trading Flow](../guides/p2p-trading-flow.md)
 - [Authentication & JWT Design](./authentication-jwt-design.md)
-- [Data Flow: Simulator to Blockchain](./data-flow-simulator-to-blockchain.md)
+- [Data Flow: Simulator to Blockchain](../guides/data-flow-simulator-to-blockchain.md)
 
 ---
 

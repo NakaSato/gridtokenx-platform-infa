@@ -8,12 +8,12 @@ Complete guide to developing with the GridTokenX platform.
 
 ## Quick Start
 
-New to GridTokenX? Start here:
+New to GridTokenX? Follow these core steps:
 
-1. [Environment Setup](./environment-setup.md) - Install dependencies and configure
-2. [Project Overview](./project-overview.md) - Understand the architecture
-3. [Start Development](./start-dev.md) - Launch the platform
-4. [Admin Registration](./admin-register.md) - Create admin user
+1. [Environment Setup](./environment-setup.md) - Install dependencies (OrbStack focus)
+2. [Project Overview](./project-overview.md) - Understand the decentralized architecture
+3. [Start Development](./start-dev.md) - Launch the platform with `./scripts/app.sh start`
+4. [Admin Registration](./admin-register.md) - Create your first admin user
 
 ## Workflow Categories
 
@@ -21,187 +21,82 @@ New to GridTokenX? Start here:
 
 | Workflow | Description |
 |----------|-------------|
-| [Project Overview](./project-overview.md) | Architecture and components |
-| [Environment Setup](./environment-setup.md) | Installation and configuration |
-| [Start Development](./start-dev.md) | Launch all services |
-| [Stop Development](./stop-dev.md) | Stop all services |
+| [Project Overview](./project-overview.md) | Architecture, messaging, and component map |
+| [Environment Setup](./environment-setup.md) | Installation and OrbStack configuration |
+| [Start Development](./start-dev.md) | Launch all services (native or Docker) |
+| [Stop Development](./stop-dev.md) | Graceful shutdown of the platform |
 
-### 🏗️ Development
+### 🏗️ Microservice Development
 
 | Workflow | Description |
 |----------|-------------|
-| [API Development](./api-development.md) | Build REST APIs with Rust/Axum |
-| [Anchor Development](./anchor-development.md) | Smart contract development |
+| [API Development](./api-development.md) | Building the Orchestration Gateway (ConnectRPC) |
+| [IAM Service](./iam-service-development.md) | Identity, Wallets, and Blockchain Registry |
+| [Trading Service](./trading-service-development.md) | Matching Engine and On-chain Settlement |
+| [Oracle Bridge](./oracle-bridge-development.md) | IoT Data Validation and Kafka Publishing |
+| [Anchor Development](./anchor-development.md) | Smart contract development (Solana/Anchor) |
 | [Database Migrations](./database-migrations.md) | Schema management with SQLx |
-| [Smart Meter Simulator](./smart-meter-simulator.md) | Simulate IoT devices |
+| [Smart Meter Simulator](./smart-meter-simulator.md) | Simulate prosumer and consumer IoT devices |
 
-### 🧪 Testing & Quality
-
-| Workflow | Description |
-|----------|-------------|
-| [Testing](./testing.md) | Run all tests (unit, integration, e2e) |
-| [Build & Deploy](./build-deploy.md) | Build and deployment processes |
-
-### 🔧 Operations
+### 📊 Observability & Quality
 
 | Workflow | Description |
 |----------|-------------|
-| [Docker Services](./docker-services.md) | Manage Docker containers |
-| [Database Management](./db-manage.md) | PostgreSQL operations |
-| [Blockchain Init](./blockchain-init.md) | Initialize smart contracts |
-| [Admin Registration](./admin-register.md) | User management |
+| [Monitoring](./monitoring.md) | Metrics, Logs (Loki), and OpenTelemetry |
+| [Grafana Stack](./grafana-stack.md) | Custom dashboards and alert rules |
+| [Testing](./testing.md) | Unit, integration, and e2e test suites |
+| [Build & Deploy](./build-deploy.md) | Docker builds and deployment pipelines |
 
-### 📊 Observability
+### 🔧 system Operations
 
 | Workflow | Description |
 |----------|-------------|
-| [Monitoring](./monitoring.md) | Metrics, logs, and dashboards |
-| [SigNoz Setup](./signoz-setup.md) | Unified observability (logs, metrics, traces) |
-| [Debugging](./debugging.md) | Troubleshoot issues |
-
-## Common Tasks
-
-### Daily Development
-
-```bash
-# Start development environment
-./scripts/app.sh start
-
-# Check status
-./scripts/app.sh status
-
-# Run tests
-just test
-
-# Stop services
-./scripts/app.sh stop
-```
-
-### Database Operations
-
-```bash
-# Start PostgreSQL
-just db-up
-
-# Run migrations
-just migrate
-
-# Create new migration
-just migrate-new add_table
-```
-
-### Blockchain Development
-
-```bash
-# Initialize blockchain
-./scripts/app.sh init
-
-# Build Anchor programs
-cd gridtokenx-anchor && anchor build
-
-# Deploy programs
-anchor deploy
-```
-
-### Testing
-
-```bash
-# All tests
-just test
-
-# Integration tests
-./scripts/run_integration_tests.sh
-
-# Anchor tests
-cd gridtokenx-anchor && anchor test
-```
+| [Docker Services](./docker-services.md) | Manage infrastructure (Redis, Kafka, Postgres) |
+| [Database Management](./db-manage.md) | Direct PostgreSQL operations |
+| [Blockchain Init](./blockchain-init.md) | Deploy and bootstrap Anchor programs |
+| [Debugging](./debugging.md) | Troubleshooting common service issues |
 
 ## Management Tools
 
-### 1. Unified Script (`app.sh`)
+### 1. Unified Manager (`app.sh`)
+
+The primary tool for platform management. Use this instead of manual `docker-compose` or `cargo run` commands where possible.
+
+// turbo
 
 ```bash
-./scripts/app.sh start    # Start all services
-./scripts/app.sh stop     # Stop services
-./scripts/app.sh status   # Check status
-./scripts/app.sh init     # Initialize blockchain
-./scripts/app.sh register # Register admin
-./scripts/app.sh doctor   # System diagnostics
+./scripts/app.sh doctor    # Check environment health
+./scripts/app.sh start     # Start all services
+./scripts/app.sh status    # Check service health
+./scripts/app.sh init      # Reset/Init blockchain
+./scripts/app.sh stop      # Stop all services
 ```
 
 ### 2. Task Runner (`just`)
 
-```bash
-just test        # Run tests
-just build       # Build services
-just migrate     # Run migrations
-just db-up       # Start database
-just signoz-up   # Start SigNoz observability
-just clippy      # Lint code
-just fmt         # Format code
-```
-
-### 3. Docker Compose
+Used for repetitive development tasks and project maintenance.
 
 ```bash
-docker-compose up -d           # Start all containers
-docker-compose down            # Stop containers
-docker-compose logs -f         # View logs
-docker-compose ps              # Check status
+just test        # Run all test suites
+just migrate     # Apply database migrations
+just db-up       # Start local development infrastructure
+just clippy      # Run lints across all Rust packages
 ```
 
-## Service Ports
+## Service Landscape
 
-| Service | Port | URL |
-|---------|------|-----|
-| API Gateway | 4000 | http://localhost:4000 |
-| Trading UI | 3000 | http://localhost:3000 |
-| PostgreSQL | 5434 | localhost:5434 |
-| Redis | 6379 | localhost:6379 |
-| **SigNoz** | 3030 | http://localhost:3030 |
-| Grafana | 3001 | http://localhost:3001 |
-| Prometheus | 9090 | http://localhost:9090 |
-| Solana RPC | 8899 | http://localhost:8899 |
+| Service | Protocol | Internal Link |
+|---------|----------|---------------|
+| **API services** | REST/WS | http://localhost:4000 |
+| **Kong Gateway** | HTTP/2 | http://localhost:8000 |
+| **Trading UI** | Web | http://localhost:3000 |
+| **Explorer** | Web | http://localhost:3002 |
+| **Grafana** | Web | http://localhost:3001 |
+| **Solana RPC** | RPC | http://localhost:8899 |
 
-## Troubleshooting
+## Need Help?
 
-Quick fixes for common issues:
+- Read [Debugging](./debugging.md) for error recovery.
+- Check [Monitoring](./monitoring.md) for real-time health.
+- Visit [Project Overview](./project-overview.md) for the "Big Picture".
 
-```bash
-# Services not starting
-./scripts/app.sh doctor
-
-# Database connection errors
-just db-down && just db-up
-
-# Port conflicts
-lsof -ti:<PORT> | xargs kill -9
-
-# Reset everything
-docker-compose down -v
-./scripts/app.sh stop
-./scripts/app.sh start
-```
-
-## Getting Help
-
-- Check [Debugging](./debugging.md) for troubleshooting guides
-- View [Monitoring](./monitoring.md) for service health
-- Read [Project Overview](./project-overview.md) for architecture details
-
-## Contributing
-
-When adding new features:
-
-1. Create database migration if needed
-2. Write tests (unit + integration)
-3. Update API documentation
-4. Run `just test` and `just clippy`
-5. Test with `./scripts/app.sh start`
-
-## Related Resources
-
-- [GridTokenX Documentation](../docs/)
-- [Anchor Documentation](https://www.anchor-lang.com/)
-- [Axum Documentation](https://docs.rs/axum/)
-- [Solana Documentation](https://docs.solana.com/)

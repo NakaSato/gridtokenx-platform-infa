@@ -4,187 +4,88 @@ description: Register admin user and manage authentication
 
 # Admin Registration
 
-Register an admin user and manage authentication tokens.
+GridTokenX requires an admin user for platform operations like market creation, user KYC approval, and oracle management.
 
-## Quick Command
+## Quick Registration
+
+The easiest way to register the initial admin is using the application manager:
 
 // turbo
 
 ```bash
 ./scripts/app.sh register
 ```
+This script will prompt for credentials and initialize the admin record in the `iam-service` database.
 
-## Manual Registration
+## Manual Registration (via API)
 
-### 1. Start API Gateway
+If you prefer to use `curl`, ensure the **API Gateway (Kong)** is running:
 
-Ensure the API Gateway is running:
-
+### 1. Register User
 ```bash
-./scripts/app.sh start
-```
-
-Wait for health check:
-```bash
-curl http://localhost:4000/health
-```
-
-### 2. Register Admin User
-
-```bash
-curl -X POST http://localhost:4000/api/v1/users \
+curl -X POST http://localhost:8000/api/v1/users \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@example.com",
-    "password": "P@ssw0rd123!",
+    "email": "admin@gridtokenx.com",
+    "password": "SecurePassword123!",
     "username": "admin",
-    "first_name": "Admin",
-    "last_name": "User"
+    "first_name": "Platform",
+    "last_name": "Admin"
   }'
 ```
 
-### 3. Save Access Token
+### 2. Obtain JWT Token
+Login to get your access token:
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@gridtokenx.com",
+    "password": "SecurePassword123!"
+  }'
+```
 
-The response will contain an access token:
-
+The response will contain:
 ```json
 {
-  "data": {
-    "auth": {
-      "access_token": "eyJhbGciOiJIUzI1NiIs...",
-      "refresh_token": "..."
-    }
-  }
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "refresh_token": "..."
 }
 ```
 
-Save the token:
-```bash
-echo "eyJhbGciOiJIUzI1NiIs..." > .admin_token
-```
+## Admin Operations
 
-## Using the Admin Token
-
-### API Requests
+Once registered, use the token for protected routes:
 
 ```bash
-TOKEN=$(cat .admin_token)
+TOKEN="your_access_token"
 
-# Authenticated request
-curl -X GET http://localhost:4000/api/v1/admin/users \
-  -H "Authorization: Bearer $TOKEN"
-```
+# List all platform users
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/v1/admin/users
 
-### Admin Operations
-
-```bash
-# List all users
-curl -X GET http://localhost:4000/api/v1/admin/users \
-  -H "Authorization: Bearer $TOKEN"
-
-# Get user details
-curl -X GET http://localhost:4000/api/v1/admin/users/{user_id} \
-  -H "Authorization: Bearer $TOKEN"
-
-# Create market
-curl -X POST http://localhost:4000/api/v1/admin/markets \
+# Create a new Energy Market
+curl -X POST http://localhost:8000/api/v1/admin/markets \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Default Market",
-    "base_token": "energy",
-    "quote_token": "usdc"
-  }'
+  -d '{"name": "Bangkok South", "zone": "TH-BKK-01"}'
 ```
 
-## Token Management
+## Seed Data
+For development, you can seed the database with test prosumers and consumers:
 
-### Refresh Token
+// turbo
 
 ```bash
-curl -X POST http://localhost:4000/api/v1/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{
-    "refresh_token": "your-refresh-token"
-  }'
+./scripts/app.sh seed --users 50
 ```
-
-### Logout
-
-```bash
-curl -X POST http://localhost:4000/api/v1/auth/logout \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-## Database Seeding
-
-Seed database with test users:
-
-```bash
-./scripts/app.sh seed
-```
-
-Or manually:
-```bash
-docker exec -i gridtokenx-postgres psql \
-  -U gridtokenx_user -d gridtokenx \
-  < scripts/seed_1000_users.sql
-```
-
-## Admin Roles
-
-| Role | Permissions |
-|------|-------------|
-| Super Admin | All permissions |
-| Admin | User management, market config |
-| Operator | Trading operations |
-| Viewer | Read-only access |
 
 ## Troubleshooting
 
-### Registration Fails
-
-```bash
-# Check API Gateway is running
-curl http://localhost:4000/health
-
-# Check database connection
-docker exec gridtokenx-postgres \
-  psql -U gridtokenx_user -d gridtokenx -c "SELECT 1"
-```
-
-### Token Expired
-
-```bash
-# Re-register or refresh token
-./scripts/app.sh register
-
-# Or use refresh endpoint
-curl -X POST http://localhost:4000/api/v1/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"refresh_token": "..."}'
-```
-
-### Permission Denied
-
-Ensure you're using the correct token:
-```bash
-# Verify token
-TOKEN=$(cat .admin_token)
-curl -X GET http://localhost:4000/api/v1/auth/me \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-## Security Notes
-
-- Change default passwords in production
-- Use secure JWT secrets
-- Enable HTTPS in production
-- Rotate tokens periodically
-- Store tokens securely (not in plain text)
+- **401 Unauthorized**: Token has expired. Use the refresh token or log in again.
+- **Connection Refused**: Ensure Kong is running and mapped to port `8000` (or `4000` for direct API access).
+- **Service Unavailable**: Check if `iam-service` is up and connected to PostgreSQL.
 
 ## Related Workflows
-
-- [Blockchain Initialization](./blockchain-init.md) - Setup blockchain
-- [Database Management](./db-manage.md) - Manage users in database
-- [Start Development](./start-dev.md) - Start API Gateway
+- [IAM Service](./iam-service-development.md) - Deep dive into identity logic.
+- [Database Management](./db-manage.md) - Direct database access.
+- [API Development](./api-development.md) - Adding new admin endpoints.

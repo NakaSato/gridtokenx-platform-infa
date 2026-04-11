@@ -4,7 +4,7 @@
 .sqlx/*
 .vendor/*
 *.pid
-
+*.snapshot
 # Environment Variables
 .env
 .env.local

@@ -163,7 +163,7 @@ This document describes the complete user registration workflow for the GridToke
        │ Background Process:
        │ 1. Call notification_service.send_verification_email()
        │ 2. Email contains verification link:
-       │    https://gridtokenx.com/verify-email?token=<verification_token>
+       │    https://gridtokenx.orbstack.local/verify-email?token=<verification_token>
        │ 3. Log success/failure (doesn't affect registration)
        │
        ▼
@@ -207,7 +207,7 @@ This document describes the complete user registration workflow for the GridToke
 
     ┌──────────────────────────────────────────────────────────────────┐
     │  2.1 User Clicks Verification Link in Email                      │
-    │      URL: https://gridtokenx.com/verify-email?token=<token>      │
+    │      URL: https://gridtokenx.orbstack.local/verify-email?token=<token>      │
     └──────────────────────────────────────────────────────────────────┘
        │
        │ Frontend extracts token from URL and calls:
@@ -370,7 +370,7 @@ This document describes the complete user registration workflow for the GridToke
        │
        │ Solana Transaction:
        │ ┌───────────────────────────────────────────────────────────┐
-       │ │ Program: Registry (DVoD5K5YRuXXF54a3b6r282jRD8RmtVHGfpw55DHFVDe) │
+       │ │ Program: Registry (FmvDiFUWPrwXsqo7z7XnVniKbZDcz32U5HSDVwPug89c) │
        │ │ Instruction: register_meter                               │
        │ │                                                           │
        │ │ Accounts:                                                 │
@@ -797,10 +797,11 @@ cargo test --test meter_registration_test
 
 ## Related Documentation
 
-- [Data Flow: Simulator to Blockchain](./data-flow-simulator-to-blockchain.md)
-- [Authentication & Authorization](./authentication-design.md)
-- [Smart Contract Architecture](./smart-contract-architecture.md)
-- [Security Best Practices](./security-best-practices.md)
+- [Data Flow: Simulator to Blockchain](../specs/system-architecture.md#secure-telemetry-pipeline)
+- [Authentication & JWT Design](../specs/authentication-jwt-design.md)
+- [Smart Contract Architecture](../specs/smart-contract-architecture.md)
+- [P2P Trading Flow](../specs/system-architecture.md#3-high-level-architecture-c4-level-2)
+- [Security Analysis](../../academic/07-security-analysis.md)
 
 ---
 

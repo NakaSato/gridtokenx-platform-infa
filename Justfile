@@ -5,8 +5,8 @@ set shell := ["nu", "-c"]
 # Default command - show help
 default:
     @echo "Available commands:"
-    @echo "  just check              - Run cargo check on api-gateway"
-    @echo "  just build              - Build api-gateway"
+    @echo "  just check              - Run cargo check on api-services"
+    @echo "  just build              - Build api-services"
     @echo "  just test               - Run tests"
     @echo "  just migrate            - Run sqlx migrations"
     @echo "  just db-up              - Start PostgreSQL container (OrbStack)"
@@ -24,11 +24,11 @@ default:
     @echo "  just fmt                - Format code"
     @echo "  just clippy             - Run clippy lints"
 
-# Check the api-gateway code
+# Check the api-services code
 check:
     (cd gridtokenx-api; cargo check)
 
-# Build the api-gateway
+# Build the api-services
 build:
     (cd gridtokenx-api; cargo build)
 
@@ -37,22 +37,30 @@ check-all:
     (cd gridtokenx-api; cargo check)
     (cd gridtokenx-iam-service; cargo check)
     (cd gridtokenx-trading-service; cargo check)
+    (cd gridtokenx-oracle-bridge; cargo check)
 
 # Build all binaries
 build-all:
     (cd gridtokenx-api; cargo build)
     (cd gridtokenx-iam-service; cargo build)
     (cd gridtokenx-trading-service; cargo build)
+    (cd gridtokenx-oracle-bridge; cargo build)
 
 # Run all microservice tests
 test:
     (cd gridtokenx-api; cargo test)
     (cd gridtokenx-iam-service; cargo test)
     (cd gridtokenx-trading-service; cargo test)
+    (cd gridtokenx-oracle-bridge; cargo test)
 
 # Run all tests including integration tests requiring solana validator
 test-all:
     ./scripts/run_integration_tests.sh
+
+# Run Edge Protocol integration test
+test-edge:
+    chmod +x scripts/test_edge_protocol.sh
+    ./scripts/test_edge_protocol.sh
 
 # Run migrations (Primary Gateway)
 migrate:
@@ -115,17 +123,25 @@ clippy:
 migrate-info:
     (cd gridtokenx-api; sqlx migrate info)
 
-# Run api-gateway locally (requires db to be running)
+# Run api-services locally (requires db to be running)
 run:
-    (cd gridtokenx-api; cargo run --bin api-gateway)
+    (cd gridtokenx-api; cargo run --bin api-services)
 
 # Run in release mode
 run-release:
     (cd gridtokenx-api; cargo run --release)
 
+# Run oracle-bridge locally
+run-oracle:
+    (cd gridtokenx-oracle-bridge; cargo run)
+
 # Watch for changes and rebuild
 watch:
     (cd gridtokenx-api; cargo watch -x check)
+
+# Run trading engine performance benchmarks
+benchmark:
+    (cd gridtokenx-trading-service; cargo test --test trading_engine_bench -- --nocapture)
 
 # OrbStack rebuild (All Services)
 orb-rebuild:

@@ -1,146 +1,127 @@
-# GridTokenX Platform
+# ⚡️ GridTokenX Platform
 
-A blockchain-powered P2P energy trading platform built on Solana with Anchor smart contracts.
+[![GridTokenX](https://img.shields.io/badge/Platform-Production--Ready-brightgreen)](https://gridtokenx.com)
+[![Solana](https://img.shields.io/badge/Blockchain-Solana-blueviolet)](https://solana.com)
+[![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
 
-## Architecture
+**GridTokenX** is a next-generation, blockchain-powered Peer-to-Peer (P2P) energy trading platform. It enables prosumers and consumers to trade energy directly, ensuring trustless settlement, high-performance telemetry ingestion, and decentralized grid stabilization.
 
-![GridTokenX System Context](docs/proposal/slidev/public/context-diagram.svg)
+---
 
-## Technology Stack
+## 🏛 Architecture at a Glance
 
-- **Core**: Rust (Axum), TypeScript (Bun/Next.js), Python (FastAPI), Solana (Anchor)
-- **Database**: PostgreSQL (Relational), InfluxDB (Time-series), Redis (Cache)
-- **Messaging**: Kafka (Event Streaming)
-- **Monitoring**: Prometheus, Grafana
-- **Infrastructure**: OrbStack (Docker Runtime), Docker Compose
+GridTokenX follows a **Modern Microservices Architecture** orchestrated by a high-performance Rust gateway and secured by Solana smart contracts.
 
-## Components
-
-### Application Services
-
-| Component | Directory | Port(s) |
-|-----------|-----------|---------|
-| **API Gateway** | `gridtokenx-api/` | 4000 (HTTP) |
-| **IAM Service** | `gridtokenx-iam-service/` | 4002 (HTTP) / 4012 (gRPC) |
-| **Trading Service** | `gridtokenx-trading-service/` | 8092 (HTTP) / 8093 (gRPC) |
-| **Oracle Bridge** | `gridtokenx-oracle-bridge/` | 4010 (IoT Gateway) |
-| **Trading UI** | `gridtokenx-trading/` | 3000 (Next.js) |
-| **Smart Meter Simulator** | `gridtokenx-smartmeter-simulator/` | 8082 (API) |
-| **Smart Meter UI** | `gridtokenx-smartmeter-simulator/ui` | 5173 (React/Vite) |
-| **Anchor Programs** | `gridtokenx-anchor/` | RPC: 8899 / WS: 8900 |
-| **WASM Library** | `gridtokenx-wasm/` | Shared logic |
-
-### Infrastructure
-
-| Component | Port(s) | Purpose |
-|-----------|---------|---------|
-| **PostgreSQL** | 5434 (Primary) / 5433 (Replica) | Relational Database |
-| **Redis** | 6379 (Primary) / 6380 (Replica) | Cache |
-| **InfluxDB** | 8086 | Time-Series Database |
-| **Kafka** | 9092 (Internal) / 29092 (External) | Event Streaming |
-| **Kong** | 8001 (Admin API) | API Gateway |
-| **Prometheus** | 9090 | Metrics Collection |
-| **Grafana** | 3001 | Visualization |
-| **Loki** | 3100 | Log Aggregation |
-| **Tempo** | 3200 | Tracing Backend |
-| **OTEL Collector** | 4317 (gRPC) / 4318 (HTTP) | Telemetry Ingestion |
-| **Mailpit** | 8025 (Web) / 1025 (SMTP) | Email Testing |
-| **Node Exporter** | 9100 | Host Metrics |
-| **cAdvisor** | 9082 | Container Metrics |
-| **PostgreSQL Exporter** | 9187 | Database Metrics |
-| **Redis Exporter** | 9121 | Cache Metrics |
-| **Kafka Exporter** | 9308 | Broker Metrics |
-
-## Management Tools
-
-GridTokenX provides several tools to manage the development environment:
-
-### 1. Unified Management Script (`app.sh`)
-The recommended way to start and stop the entire platform.
-```bash
-./scripts/app.sh start                  # Start all services
-./scripts/app.sh start --native-apps    # Docker infra + native background services (recommended for dev)
-./scripts/app.sh start --skip-ui        # Backend services only
-./scripts/app.sh start --docker-only    # Infrastructure only (PostgreSQL, Redis, Kafka)
-./scripts/app.sh stop                   # Stop all services
-./scripts/app.sh status                 # Check service and endpoint status
-./scripts/app.sh init                   # Initialize blockchain and deploy programs
+```mermaid
+graph TD
+    Client[Trading UI / Portal] -->|HTTPS/WSS| Kong{Kong API Gateway}
+    Kong -->|ConnectRPC| APIS[API Services]
+    
+    subgraph "Core Service Mesh"
+        APIS <-->|gRPC| IAM[IAM Service]
+        APIS <-->|gRPC| Trading[Trading Service]
+        APIS <-->|gRPC| OracleB[Oracle Bridge]
+    end
+    
+    subgraph "Infrastructure Layer"
+        OracleB <-->|Signed Telemetry| EdgeG[Edge Gateway]
+        EdgeG <-->|DLMS/HPLC| Meter[Smart Meter]
+    end
+    
+    subgraph "Blockchain Layer"
+        IAM & Trading -->|Anchor| Solana[Solana Blockchain]
+    end
 ```
 
-**Running Modes:**
-- **Default** (`start`): Docker infrastructure + app services in terminal windows
-- **Native Apps** (`start --native-apps`): Docker infrastructure + app services as background processes with log files
-- **Docker Only** (`start --docker-only`): Only infrastructure containers
-- **Skip UI** (`start --skip-ui`): Backend services without frontend applications
+### Key Platforms
+1.  **Exchange Platform**: Financial layer handling order matching, trade execution, and on-chain settlement.
+2.  **Infrastructure Platform**: Physical-to-digital bridge ensuring energy data integrity via cryptographic Edge IoT validation.
 
-> 📖 **See also**: [Native Apps Mode Guide](docs/native-apps-mode.md) | [Quick Reference](docs/QUICK_REF_NATIVE_APPS.md)
+---
 
-### 2. Task Runner (`just`)
-For common development tasks like testing and migrations.
-```bash
-just test                 # Run all tests
-just migrate              # Run database migrations
-just db-up / db-down      # Toggle database containers
-just clippy               # Run lint checks
-```
+## 🛠 Technology Stack
 
-### 3. Shell Helper (`grx.nu`)
-For Nushell users, providing similar functionality to `just`.
+-   **Backend Core**: Rust (Axum, Tonic, ConnectRPC)
+-   **Blockchain**: Solana (Anchor Framework), SPL Token-2022
+-   **Intelligence**: Sparse mixture of experts (MoE) for NILM (Edge AI)
+-   **Messaging (Hybrid)**: 
+    -   **Kafka**: Event sourcing & audit trails
+    -   **RabbitMQ**: Task queues & guaranteed delivery
+    -   **Redis**: Real-time matching & WebSockets
+-   **Persistence**: PostgreSQL 17 (SQLx), InfluxDB (Time-series), Redis 7 (Cache)
+-   **Infrastructure**: Kong Gateway, OrbStack (Docker Runtime)
 
-## Quick Start
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
+-   **OrbStack**: Optimized Docker runtime for macOS.
+-   **Rust Toolchain**: `rustup`, `cargo`.
+-   **Solana CLI & Anchor**: For blockchain interaction.
 
-**OrbStack Required**: GridTokenX uses [OrbStack](https://orbstack.dev/) as its Docker runtime for better performance and battery life on macOS.
-
+### 1. Initialize the Platform
 ```bash
-# Install OrbStack (if not already installed)
-brew install --cask orbstack
+# Clone and setup submodules
+git clone --recursive https://github.com/gridtokenx/platform.git
+cd platform
 
-# Start OrbStack
-open -a OrbStack
+# Start the unified infrastructure (Postgres, Redis, Kafka, Kong)
+./scripts/app.sh start --docker-only
+
+# Initialize the blockchain state and deploy programs
+./scripts/app.sh init
 ```
 
-> 📖 **Migrating from Docker Desktop?** See [OrbStack Migration Guide](docs/ORBSTACK_MIGRATION.md)
-
-1. **Clone & Fetch Submodules**:
-   ```bash
-   git clone <repo-url>
-   cd gridtokenx-platform-infa
-   git submodule update --init --recursive
-   ```
-
-2. **Setup Environment**:
-   ```bash
-   cp .env.example .env
-   # Edit .env if needed
-   ```
-
-3. **Launch Platform**:
-   ```bash
-   ./scripts/app.sh start
-   ```
-
-## Testing
-
-### Anchor Tests
+### 2. Launch Services
+We recommend the **Native Apps Mode** for the best development experience:
 ```bash
-cd gridtokenx-anchor
-anchor test --skip-build
+./scripts/app.sh start --native-apps
 ```
 
-### API Gateway Tests
-```bash
-just test
-```
+> [!TIP]
+> Use `tail -f logs/*.log` to monitor background services in Native Mode.
 
-## Monitoring
+---
 
-Once the platform is running, you can access monitoring tools:
-- **Grafana**: [http://localhost:3001](http://localhost:3001) (Admin/admin)
-- **Prometheus**: [http://localhost:9090](http://localhost:9090)
-- **Mailpit**: [http://localhost:8025](http://localhost:8025)
+## 📡 Service Registry
 
-## License
+| Component | Endpoint | Role |
+| :--- | :--- | :--- |
+| **Kong Gateway** | `http://localhost:8000` | Unified Entry Point |
+| **API Services** | `http://localhost:4000` | Lead Orchestrator |
+| **IAM Service** | `grpc://localhost:50052` | Identity & Registry |
+| **Trading Service** | `grpc://localhost:50053` | Matching & Settlement |
+| **Oracle Bridge** | `http://localhost:4010` | IoT Data Ingestion |
+| **Grafana** | `http://localhost:3001` | Observability (Admin/admin) |
 
-Proprietary - GridTokenX
+---
+
+## 🔗 On-Chain Program IDs (Localnet)
+
+| Program | ID |
+| :--- | :--- |
+| **Registry** | `FmvDiFUWPrwXsqo7z7XnVniKbZDcz32U5HSDVwPug89c` |
+| **Trading** | `69dGpKu9a8EZiZ7orgfTH6CoGj9DeQHHkHBF2exSr8na` |
+| **Energy Token** | `n52aKuZwUeZAocpWqRZAJR4xFhQqAvaRE7Xepy2JBGk` |
+| **Oracle** | `JDUVXMkeGi4oxLp8njBaGScAFaVBBg7iGoiqcY1LxKop` |
+| **Governance** | `DamT9e1VqbA5nSyFZHExKwQu6qs4L5FW6dirWCK8YLd4` |
+
+---
+
+## 📖 Key Documentation
+
+Detailed specifications are located in the `/docs` directory:
+
+-   [Platform Design (Full Specification)](docs/PLATFORM_DESIGN.md)
+-   [System Architecture & Diagrams](docs/architecture/specs/system-architecture.md)
+-   [Academic Documentation (Thesis & Research)](docs/academic/README.md)
+-   [Trading Service Deep Dive](docs/architecture/services/TRADING_SERVICE_ARCHITECTURE.md)
+-   [IAM & Security Model](docs/architecture/services/IAM_SERVICE_ARCHITECTURE.md)
+-   [Oracle Bridge & IoT Pipeline](docs/architecture/services/ORACLE_BRIDGE_ARCHITECTURE.md)
+
+---
+
+## ⚖️ License
+
+Proprietary Software. © 2026 GridTokenX. All Rights Reserved.

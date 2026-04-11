@@ -2,8 +2,8 @@ _format_version: "3.0"
 _transform: true
 
 services:
-  - name: api-gateway
-    url: http://host.docker.internal:4000
+  - name: api-services
+    url: http://api-services:4000
     routes:
       - name: api-route
         paths:
@@ -20,7 +20,7 @@ services:
         strip_path: false
 
   - name: iam-service
-    url: http://host.docker.internal:8080
+    url: http://iam-service:8080
     routes:
       - name: iam-route
         paths:
@@ -28,15 +28,32 @@ services:
         strip_path: true
 
   - name: trading-service
-    url: http://host.docker.internal:8092
+    url: http://trading-service:8092
     routes:
       - name: trading-route
         paths:
           - /trading
         strip_path: true
 
+  - name: trading-service-rest
+    url: http://trading-service:8093
+    routes:
+      - name: settlement-route
+        paths:
+          - /api/v1/settlement
+        strip_path: false
+        plugins:
+          - name: ip-restriction
+            config:
+              allow:
+                - 172.16.0.0/12
+                - 127.0.0.1
+              status: 403
+              message: "Access restricted to Oracle Bridge only"
+            enabled: true
+
   - name: simulator-api
-    url: http://host.docker.internal:8082
+    url: http://smartmeter-simulator:8080
     routes:
       - name: simulator-route
         paths:
@@ -44,7 +61,7 @@ services:
         strip_path: true
 
   - name: oracle-bridge
-    url: http://host.docker.internal:4010
+    url: http://oracle-bridge:4010
     routes:
       - name: oracle-route
         paths:
@@ -52,7 +69,7 @@ services:
         strip_path: true
 
   - name: solana-rpc
-    url: http://host.docker.internal:8899
+    url: http://host.orbstack.local:8899
     routes:
       - name: solana-route
         paths:
@@ -60,7 +77,7 @@ services:
         strip_path: true
 
   - name: solana-ws
-    url: http://host.docker.internal:8900
+    url: http://host.orbstack.local:8900
     routes:
       - name: solana-ws-route
         paths:
@@ -88,6 +105,14 @@ plugins:
     config:
       second: 200
       hour: 10000
+    enabled: true
+  - name: opentelemetry
+    config:
+      traces_endpoint: http://otel-collector:4318/v1/traces
+      resource_attributes:
+        service.name: "gridtokenx-kong"
+      header_type: preserve
+      sampling_rate: 1.0
     enabled: true
   - name: cors
     config:

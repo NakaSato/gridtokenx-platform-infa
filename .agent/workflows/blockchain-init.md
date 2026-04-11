@@ -66,90 +66,48 @@ solana program deploy \
   target/deploy/trading.so \
   --url http://localhost:8899
 
-# Oracle Program
-solana program deploy \
-  --program-id target/deploy/oracle-keypair.json \
-  target/deploy/oracle.so \
-  --url http://localhost:8899
+### 2. Deploy Anchor Programs
+Use the Anchor CLI from the `gridtokenx-anchor` directory. 
 
-# Governance Program
-solana program deploy \
-  --program-id target/deploy/governance-keypair.json \
-  target/deploy/governance.so \
-  --url http://localhost:8899
-```
-
-### 4. Bootstrap On-Chain Accounts
+| Program | Program ID (from Anchor.toml) |
+|---------|------------|
+| **Registry** | `FmvDiFUWPrwXsqo7z7XnVniKbZDcz32U5HSDVwPug89c` |
+| **Energy Token** | `n52aKuZwUeZAocpWqRZAJR4xFhQqAvaRE7Xepy2JBGk` |
+| **Trading** | `69dGpKu9a8EZiZ7orgfTH6CoGj9DeQHHkHBF2exSr8na` |
+| **Oracle** | `JDUVXMkeGi4oxLp8njBaGScAFaVBBg7iGoiqcY1LxKop` |
+| **Governance** | `DamT9e1VqbA5nSyFZHExKwQu6qs4L5FW6dirWCK8YLd4` |
 
 ```bash
 cd gridtokenx-anchor
-export ANCHOR_PROVIDER_URL=http://localhost:8899
-export ANCHOR_WALLET=target/deploy/registry-keypair.json
-
-npx ts-node scripts/bootstrap.ts
+anchor deploy
 ```
 
-### 5. Extract and Propagate PDAs
+### 3. Account Bootstrapping
+After deployment, several on-chain "PDA" (Program Derived Address) accounts must be initialized (e.g., Energy Mint, Global Config).
 
 ```bash
-# Extract PDA addresses
-npx ts-node scripts/get_pdas.ts
-
-# This updates .env files with:
-# - ENERGY_TOKEN_MINT
-# - CURRENCY_TOKEN_MINT
-# - REGISTRY_PDA
-# - TRADING_MARKET_PDA
+cd gridtokenx-anchor
+# Initialize registry and global settings
+npx tsx scripts/init-registry.ts
+# Initialize energy tokens and pools
+npx ts-node scripts/mint-tokens.ts
 ```
 
-## Program IDs (Fixed)
+## Propagation
+Once initialized, the generated PDA addresses and Mint IDs must be updated in the platform's `.env` files.
+- `REGISTRY_PDA`
+- `ENERGY_TOKEN_MINT`
+- `TRADING_CONFIG_PDA`
 
-| Program | Program ID |
-|---------|------------|
-| Registry | `FmvDiFUWsqo7z7XnVniKbZDcz32U5HSDVwPug89c` |
-| Energy Token | `n52aKuZwUeZAocpWqRZAJR4xFhQqAvaRE7Xepy2JBGk` |
-| Trading | `69dGpKu9a8EZiZ7orgfTH6CoGj9DeQHHkHBF2exSr8na` |
-| Oracle | `JDUVXMkeGi4oxLp8njBaGScAFaVBBg7iGoiqcY1LxKop` |
-| Governance | `DamT9e1VqbA5nSyFZHExKwQu6qs4L5FW6dirWCK8YLd4` |
-
-## Verify Deployment
-
-```bash
-# Check program deployment
-solana program show <PROGRAM_ID> --url http://localhost:8899
-
-# Check account data
-anchor account <PDA_ADDRESS> --url http://localhost:8899
-```
+These are typically extracted by `app.sh init` automatically.
 
 ## Troubleshooting
 
-### Validator Won't Start
-```bash
-# Clean ledger and restart
-rm -rf test-ledger
-solana-test-validator --reset
-```
-
-### Deployment Fails
-```bash
-# Ensure validator is running
-solana cluster-version --url http://localhost:8899
-
-# Check SOL balance for fees
-solana balance --url http://localhost:8899
-```
-
-### Programs Not Found
-```bash
-# Rebuild programs
-cd gridtokenx-anchor
-anchor clean
-anchor build
-```
+- **Deployment Failed (Balance)**: Your deployer wallet needs local SOL. Run `solana airdrop 5`.
+- **Program ID Mismatch**: Ensure `Anchor.toml` and the code in `programs/*/src/lib.rs` use the same ID string.
+- **Validator Stalled**: Run `pkill -f solana-test-validator` and delete `test-ledger/`.
 
 ## Related Workflows
-
-- [Start Development](./start-dev.md) - Start validator and services
-- [Testing](./testing.md) - Run Anchor tests
-- [Admin Registration](./admin-register.md) - Register admin user
+- [Anchor Development](./anchor-development.md) - Modifying smart contracts.
+- [Trading Service](./trading-service-development.md) - Using the deployed contracts for settlement.
+- [Start Development](./start-dev.md) - Regular development cycle.

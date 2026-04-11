@@ -2,47 +2,44 @@
 description: Stop all development services for GridTokenX
 ---
 
-# Stop Development
+# Stop Development Environment
 
-This workflow stops all running development services.
+This workflow provides a graceful shutdown of all platform services.
 
-## Quick Command
+## Basic Stop
+
+Stops all application services (API, IAM, Trading, etc.) but leaves the infrastructure (Docker containers) running for faster subsequent startups.
 
 // turbo
-
-```bash
-./scripts/app.sh
-```
-
-To stop everything including Docker services:
 
 ```bash
 ./scripts/app.sh stop
 ```
 
-## Manual Steps
+## Full Stop (Infrastructure Cleanup)
 
-1. **Stop API Gateway**
+Stops all application services AND shuts down all Docker containers (PostgreSQL, Kafka, Redis, Kong). Use this when you are finished for the day or need to reset the entire stack.
 
-```bash
-pkill -f "api-gateway" 2>/dev/null || true
-```
-
-2. **Stop Solana Validator**
+// turbo
 
 ```bash
-pkill -f "solana-test-validator" 2>/dev/null || true
+./scripts/app.sh stop --all
 ```
 
-3. **Stop Docker Services** (optional)
+## What Happens During Shutdown
+1. **Graceful Exit**: Microservices receive a termination signal to close database connections and finish active matching rounds.
+2. **Validator Halt**: The Solana test validator is stopped, and the ledger state is preserved (unless `--reset` was used on start).
+3. **PID Cleanup**: Internal tracking files (`.gridtokenx.pid`) are removed.
+4. **Docker Down**: If `--all` is specified, `docker-compose down` is called, releasing all system resources.
+
+## Verification
+Verify that all services have stopped successfully:
+
+// turbo
 
 ```bash
-cd /Users/chanthawat/Developments/gridtokenx-platform-infa && docker-compose down
+./scripts/app.sh status
 ```
 
-## Notes
-
-- Database data persists in Docker volumes
-- Solana state is reset on next start with `--reset` flag
-- The stop script leaves Docker services running by default for faster restarts
-- **Important**: You must manually close the extra Terminal tabs opened by the start script
+> [!TIP]
+> If a service appears stuck or a port remains occupied, run `./scripts/app.sh doctor` to identify and resolve process conflicts.

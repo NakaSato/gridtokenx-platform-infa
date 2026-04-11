@@ -1,4 +1,4 @@
-# Complete End-to-End Flow: Simulator → API Gateway → Blockchain
+# Complete End-to-End Flow: Simulator → API Services → Blockchain
 
 **Version:** 2.0 (Optimized)  
 **Last Updated:** March 16, 2026  
@@ -82,14 +82,14 @@ This document describes the complete data flow architecture for submitting smart
        │
        ▼
     ┌──────────────────────────────────────────────────────────────────┐
-    │  1.4 HTTP Transport Sends to API Gateway                         │
+    │  1.4 HTTP Transport Sends to API Services                         │
     │      File: transport/http.py → HttpTransport.send_reading()      │
     └──────────────────────────────────────────────────────────────────┘
        │
        │ HTTP POST Request:
        │ ┌───────────────────────────────────────────────────────────┐
        │ │ POST /api/meters/submit-reading                           │
-       │ │ Host: localhost:4000                                      │
+       │ │ Host: api-services:4000                                   │
        │ │ Content-Type: application/json                            │
        │ │ Authorization: Bearer <API_KEY>                           │
        │ │ Timeout: 10 seconds                                       │
@@ -117,7 +117,7 @@ This document describes the complete data flow architecture for submitting smart
        │
        ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  PHASE 2: API GATEWAY (Rust/Axum - Port 4000)                            │
+│  PHASE 2: API SERVICES (Rust/Axum - Port 4000)                            │
 │  Location: gridtokenx-api/src/api/handlers/energy_hdl/            │
 └──────────────────────────────────────────────────────────────────────────┘
 
@@ -257,13 +257,13 @@ This document describes the complete data flow architecture for submitting smart
        │
        │ Solana Transaction #1:
        │ ┌───────────────────────────────────────────────────────────┐
-       │ │ Program: Registry (DVoD5K5YRuXXF54a3b6r282jRD8RmtVHGfpw55DHFVDe) │
+       │ │ Program: Registry (FmvDiFUWPrwXsqo7z7XnVniKbZDcz32U5HSDVwPug89c) │
        │ │ Instruction: update_meter_reading                         │
        │ │                                                           │
        │ │ Accounts:                                                 │
        │ │ - registry_pda: [b"registry"]                             │
        │ │ - meter_account_pda: [b"meter", owner, meter_id]          │
-       │ │ - oracle_authority: [SIGNER] ← API Gateway authority      │
+       │ │ - oracle_authority: [SIGNER] ← API Services authority      │
        │ │                                                           │
        │ │ Data:                                                     │
        │ │ - discriminator: sha256("global:update_meter_reading")[:8]│
@@ -291,14 +291,14 @@ This document describes the complete data flow architecture for submitting smart
        │
        │ Solana Transaction #2:
        │ ┌───────────────────────────────────────────────────────────┐
-       │ │ Program: Energy Token (ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno) │
+       │ │ Program: Energy Token (n52aKuZwUeZAocpWqRZAJR4xFhQqAvaRE7Xepy2JBGk) │
        │ │ Instruction: mint_tokens_direct                           │
        │ │                                                           │
        │ │ Accounts:                                                 │
        │ │ - mint_pda: [b"mint_2022"]                                │
        │ │ - user_token_account: ATA (from step 3.3)                 │
        │ │ - user_wallet: destination                                │
-       │ │ - authority: [SIGNER] ← API Gateway authority             │
+       │ │ - authority: [SIGNER] ← API Services authority             │
        │ │ - token_program: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ys626dR4OD7 │
        │ │                                                           │
        │ │ Data:                                                     │
@@ -499,7 +499,7 @@ This document describes the complete data flow architecture for submitting smart
 | `transport/http.py`  | HTTP client to API Gateway (`send_reading()`)   |
 | `config/settings.py` | Configuration (API URL, API key, endpoints)     |
 
-### API Gateway (Rust)
+### API Services (Rust)
 
 | File                                       | Purpose                                                                    |
 | ------------------------------------------ | -------------------------------------------------------------------------- |
@@ -513,10 +513,8 @@ This document describes the complete data flow architecture for submitting smart
 
 ### Anchor Smart Contracts (Rust)
 
-| Program          | ID                                             | Purpose                                   |
-| ---------------- | ---------------------------------------------- | ----------------------------------------- |
-| **Registry**     | `DVoD5K5YRuXXF54a3b6r282jRD8RmtVHGfpw55DHFVDe` | Meter account management, reading updates |
-| **Energy Token** | `ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno` | GRID token minting/burning                |
+| **Registry**     | `FmvDiFUWPrwXsqo7z7XnVniKbZDcz32U5HSDVwPug89c` | Meter account management, reading updates |
+| **Energy Token** | `n52aKuZwUeZAocpWqRZAJR4xFhQqAvaRE7Xepy2JBGk` | GRID token minting/burning                |
 
 ---
 
@@ -705,10 +703,10 @@ def step_simulation(self, timestamp):
 
 ## Related Documentation
 
-- [Architecture Overview](./architecture-overview.md)
-- [API Gateway Design](./api-gateway-design.md)
-- [Smart Contract Architecture](./smart-contract-architecture.md)
-- [Performance Benchmarks](./performance-benchmarks.md)
+- [Platform Design](../../PLATFORM_DESIGN.md)
+- [API Services Architecture](../services/API_SERVICES_ARCHITECTURE.md)
+- [Smart Contract Architecture](../specs/smart-contract-architecture.md)
+- [Messaging Strategy](../specs/system-architecture.md#messaging-strategy)
 
 ---
 

@@ -4,313 +4,85 @@ description: Monitor GridTokenX services and metrics
 
 # Monitoring & Observability
 
-Monitor GridTokenX services using Prometheus, Grafana, and built-in metrics.
+GridTokenX uses a comprehensive observability stack based on **Prometheus** (metrics), **Loki** (logs), and **Tempo** (traces), all visualized in **Grafana**.
 
 ## Quick Access
 
 // turbo
 
 ```bash
-# Start monitoring stack
-docker-compose up -d prometheus grafana promtail
+# Verify monitoring stack status
+./scripts/app.sh status
 
-# Access dashboards
+# Access UIs
 # Grafana: http://localhost:3001 (admin/admin)
 # Prometheus: http://localhost:9090
 ```
 
-## Monitoring Stack
+## Observability Architecture
 
-| Service | Port | URL | Purpose |
-|---------|------|-----|---------|
-| Prometheus | 9090 | http://localhost:9090 | Metrics collection |
-| Grafana | 3001 | http://localhost:3001 | Visualization |
-| Mailpit | 8025 | http://localhost:8025 | Email monitoring |
+The platform uses the **OpenTelemetry (OTEL)** collector as the primary ingestion point:
+1. **Services** push metrics/traces to the OTEL Collector.
+2. **OTEL Collector** exports metrics to Prometheus and traces to Tempo.
+3. **Loki** pulls logs directly from Docker containers.
+4. **Grafana** aggregates all three data sources for visualization.
 
 ## Prometheus Metrics
 
 ### Accessing Prometheus
+Open http://localhost:9090 to run ad-hoc PromQL queries.
 
-Open http://localhost:9090
+### Core Metrics (api-services)
+| Metric | Description |
+|--------|-------------|
+| `http_requests_total` | Total request count |
+| `connect_request_duration_seconds` | Latency for ConnectRPC calls |
+| `db_pool_active_connections` | Current SQLx pool usage |
+| `kafka_producer_messages_total` | Outbound event count |
 
-### Available Metrics
-
+### Useful PromQL Queries
 ```promql
-# API Gateway requests
-http_requests_total{service="api-gateway"}
+# Request Rate (last 5m)
+sum(rate(http_requests_total{service="api-services"}[5m]))
 
-# Request latency
-http_request_duration_seconds{service="api-gateway"}
+# P95 ConnectRPC Latency
+histogram_quantile(0.95, sum(rate(connect_request_duration_seconds_bucket[5m])) by (le, method))
 
-# Database connections
-db_pool_connections{service="api-gateway"}
-
-# Redis operations
-redis_operations_total{service="api-gateway"}
-
-# Trading orders
-trading_orders_total{status="pending"}
-trading_orders_total{status="matched"}
-
-# Smart meter readings
-meter_readings_total{type="consumption"}
-meter_readings_total{type="generation"}
-
-# Blockchain transactions
-solana_transactions_total{status="success"}
+# Database Pool Saturation
+db_pool_active_connections / db_pool_max_connections
 ```
 
-### Custom Queries
+## Logging (Loki)
 
-```promql
-# Request rate per second
-rate(http_requests_total[5m])
+Application logs are in JSON format and enriched with `trace_id` and `span_id`.
 
-# Error rate
-rate(http_requests_total{status=~"5.."}[5m])
+### Accessing Logs
+1. Open Grafana → Explore.
+2. Select **Loki** datasource.
+3. Query by service: `{container_name="gridtokenx-api-services"}`.
 
-# P95 latency
-histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+### Log-to-Trace Navigation
+Click on any log line containing a `trace_id` to jump directly to the distributed trace in Tempo.
 
-# Database pool utilization
-db_pool_active / db_pool_max
+## Distributed Tracing (Tempo)
 
-# Trading volume
-sum(trading_orders_total{status="matched"})
-```
+GridTokenX uses tracing to follow a request from the **API Gateway** → **IAM Service** → **Solana RPC**.
 
-## Grafana Dashboards
+### Accessing Traces
+1. Open Grafana → Explore.
+2. Select **Tempo** datasource.
+3. Use the **Search** tab to find spans by service or trace ID.
 
-### Accessing Grafana
+## Service Health Endpoints
 
-Open http://localhost:3001
-- Username: `admin`
-- Password: `admin`
-
-### Built-in Dashboards
-
-| Dashboard | Description |
-|-----------|-------------|
-| API Gateway | Request metrics, latency, errors |
-| Trading | Order flow, matching, settlement |
-| Smart Meters | Energy readings, tokenization |
-| Blockchain | Transaction stats, program calls |
-| Database | Connection pool, query performance |
-| System | CPU, memory, disk, network |
-
-### Creating Custom Dashboards
-
-1. Open Grafana (http://localhost:3001)
-2. Click "Create" → "Dashboard"
-3. Add panels with Prometheus queries
-4. Save dashboard
-
-### Example Panel Queries
-
-**Request Rate**:
-```promql
-sum(rate(http_requests_total[1m]))
-```
-
-**Error Rate**:
-```promql
-sum(rate(http_requests_total{status=~"5.."}[1m]))
-```
-
-**Active Users**:
-```promql
-count(active_sessions)
-```
-
-## Application Logs
-
-### Structured Logging
-
-GridTokenX uses JSON structured logging:
-
-```json
-{
-  "timestamp": "2024-01-15T10:30:00Z",
-  "level": "INFO",
-  "service": "api-gateway",
-  "message": "Request processed",
-  "method": "POST",
-  "path": "/api/v1/orders",
-  "status": 200,
-  "duration_ms": 45
-}
-```
-
-### Log Levels
-
-| Level | Description |
-|-------|-------------|
-| ERROR | Critical errors requiring attention |
-| WARN | Potential issues, degraded functionality |
-| INFO | Normal operations, key events |
-| DEBUG | Detailed debugging information |
-| TRACE | Very detailed trace information |
-
-### Viewing Logs
-
-```bash
-# All services
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f api-gateway
-
-# Filter by level
-docker logs gridtokenx-api-gateway 2>&1 | grep '"level":"ERROR"'
-
-# Last N lines
-docker-compose logs --tail=100 api-gateway
-```
-
-### Log Aggregation
-
-Configure log shipping to external systems:
-
-```yaml
-# docker-compose.yml
-services:
-  api-gateway:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-```
-
-## Health Checks
-
-### Service Health Endpoints
-
-```bash
-# API Gateway
-curl http://localhost:4000/health
-
-# Trading Service
-curl http://localhost:8092/health
-
-# IAM Service
-curl http://localhost:8080/health
-
-# Smart Meter API
-curl http://localhost:8082/health
-```
-
-### Health Check Response
-
-```json
-{
-  "status": "healthy",
-  "checks": {
-    "database": "healthy",
-    "redis": "healthy",
-    "blockchain": "healthy",
-    "kafka": "healthy"
-  },
-  "uptime_seconds": 86400
-}
-```
-
-### Docker Health Checks
-
-```bash
-# Check container health
-docker ps --format "table {{.Names}}\t{{.Status}}"
-
-# Specific health check
-docker inspect --format='{{.State.Health.Status}}' gridtokenx-postgres
-```
-
-## Alerting
-
-### Prometheus Alert Rules
-
-Create `prometheus/alerts.yml`:
-
-```yaml
-groups:
-  - name: gridtokenx
-    rules:
-      - alert: HighErrorRate
-        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
-        for: 5m
-        annotations:
-          summary: High error rate detected
-
-      - alert: DatabaseDown
-        expr: db_pool_available == 0
-        for: 1m
-        annotations:
-          summary: Database connection pool exhausted
-
-      - alert: HighLatency
-        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
-        for: 5m
-        annotations:
-          summary: P95 latency above 1 second
-```
-
-### Grafana Alerts
-
-1. Open panel in Grafana
-2. Click "Alert" tab
-3. Create alert rule
-4. Configure notification channel
-
-## Performance Metrics
-
-### Key Metrics to Monitor
-
-| Metric | Threshold | Alert Level |
-|--------|-----------|-------------|
-| Error Rate | > 1% | Critical |
-| P95 Latency | > 500ms | Warning |
-| P99 Latency | > 1s | Critical |
-| DB Pool Usage | > 80% | Warning |
-| Memory Usage | > 85% | Warning |
-| Disk Usage | > 90% | Critical |
-| Trading Order Lag | > 5s | Warning |
-
-### Trading-Specific Metrics
-
-```promql
-# Order matching latency
-trading_order_match_duration_seconds
-
-# Settlement success rate
-settlement_transactions_total{status="success"} / settlement_transactions_total
-
-# Price feed freshness
-time() - oracle_price_update_timestamp
-```
-
-## Distributed Tracing
-
-### Trace Context
-
-GridTokenX propagates trace context via headers:
-
-```
-X-Trace-ID: <unique-trace-id>
-X-Span-ID: <span-id>
-```
-
-### Viewing Traces
-
-```bash
-# Enable trace logging
-export RUST_LOG=trace
-
-# View trace in logs
-docker logs api-gateway | grep "trace_id"
-```
+| Service | Health URL |
+|---------|------------|
+| **API services** | http://localhost:4000/health |
+| **IAM Service** | http://localhost:50052/health | (gRPC Health) |
+| **Trading Service**| http://localhost:50053/health | (gRPC Health) |
+| **Oracle Bridge** | http://localhost:4010/health |
 
 ## Related Workflows
-
-- [Debugging](./debugging.md) - Troubleshoot issues
-- [Docker Services](./docker-services.md) - Manage containers
-- [Start Development](./start-dev.md) - Start monitoring stack
+- [Grafana Stack](./grafana-stack.md) - Deep dive into LGT configuration.
+- [Debugging](./debugging.md) - Using logs and traces to fix issues.
+- [Start Development](./start-dev.md) - Ensuring the stack is running.

@@ -4,95 +4,90 @@ description: GridTokenX Platform - Complete Project Overview
 
 # GridTokenX Platform Overview
 
-A blockchain-powered P2P energy trading platform built on Solana with Anchor smart contracts.
+GridTokenX is a decentralized energy trading ecosystem that enables P2P energy exchange using the Solana blockchain for trustless settlement and a specialized IoT infrastructure for real-time telemetry validation.
 
 ## Architecture
 
-GridTokenX enables peer-to-peer energy trading using:
-- **Solana Blockchain** - Smart contracts for trustless trading
-- **PostgreSQL** - Primary relational database (with replication)
-- **Redis** - Caching layer (with replication)
-- **InfluxDB** - Time-series data for energy readings
-- **Kafka** - Event streaming and messaging
-- **Kong** - API Gateway management
+The platform follows a **decentralized microservices architecture** where each service owns its domain and blockchain interactions.
+
+```mermaid
+graph TD
+    subgraph "Edge Layer"
+        Meter[Smart Meter] --> EdgeGW[Edge Gateway]
+    end
+
+    subgraph "Infrastructure Platform"
+        EdgeGW -- Signed Telemetry --> Oracle[Oracle Bridge]
+        Oracle -- Validated Data --> Kafka[(Kafka)]
+    end
+
+    subgraph "Exchange Platform"
+        Client[Trading UI / Portal] --> Kong[Kong API Gateway]
+        Kong -- ConnectRPC --> API[API services]
+        API -- gRPC --> IAM[IAM Service]
+        API -- gRPC --> Trading[Trading Service]
+    end
+
+    subgraph "Blockchain Layer"
+        IAM -- Registry Program --> Solana((Solana))
+        Trading -- Trading Program --> Solana
+        Trading -- Energy Token --> Solana
+    end
+
+    Kafka -- Event Sourcing --> API
+    Rabbit[(RabbitMQ)] -- Task Queue --> API
+```
+
+### Key Technical Pillars
+- **Solana Blockchain**: Anchor-based smart contracts for matching and settlement.
+- **OrbStack**: Required high-performance Docker runtime for macOS.
+- **ConnectRPC**: Modern gRPC-over-HTTP/2 communication between services.
+- **Hybrid Messaging**: Kafka (event sourcing), RabbitMQ (task queues), and Redis (real-time).
 
 ## Project Structure
 
-| Directory | Component | Technology |
-|-----------|-----------|------------|
-| `gridtokenx-api/` | API Gateway (Primary) | Rust/Axum |
-| `gridtokenx-iam-service/` | Identity & Access Management | Rust |
-| `gridtokenx-trading-service/` | Trading Engine | Rust |
-| `gridtokenx-oracle-bridge/` | Oracle & IoT Gateway | Rust |
-| `gridtokenx-anchor/` | Smart Contracts | Anchor/Solana |
-| `gridtokenx-trading/` | Trading UI | Next.js/Bun |
-| `gridtokenx-portal/` | Admin Portal | Next.js |
-| `gridtokenx-explorer/` | Blockchain Explorer | Next.js |
-| `gridtokenx-smartmeter-simulator/` | Meter Simulator | Python/FastAPI |
-| `gridtokenx-wasm/` | Shared WASM Library | Rust/WASM |
+| Directory | Component | Responsibility |
+|-----------|-----------|----------------|
+| `gridtokenx-api/` | API Services | Orchestration, ConnectRPC Gateway, Background workers |
+| `gridtokenx-iam-service/` | IAM Service | User Identity, Wallet Encryption, Registry Program |
+| `gridtokenx-trading-service/` | Trading Service | Matching Engine, CDA/Batch, Trading Program |
+| `gridtokenx-oracle-bridge/` | Oracle Bridge | Telemetry Validation (Ed25519), Kafka Ingestion |
+| `gridtokenx-anchor/` | Smart Contracts | Anchor Programs (Registry, Trading, Energy Token) |
+| `gridtokenx-edge-gateway/` | Edge Gateway | IoT Protocol Translation (DLMS, HPLC, OCPP) |
+| `gridtokenx-trading/` | Trading UI | User-facing dashboard (Next.js) |
+| `gridtokenx-smartmeter-simulator/`| Simulator | Stress testing & IoT hardware simulation |
 
-## Service Ports
+## Service Landscape
 
-| Service | Port | URL |
-|---------|------|-----|
-| API Gateway | 4000 | http://localhost:4000 |
-| Trading UI | 3000 | http://localhost:3000 |
-| Smart Meter API | 8082 | http://localhost:8082 |
-| Smart Meter UI | 5173 | http://localhost:5173 |
-| PostgreSQL | 5434 | localhost:5434 |
-| Redis | 6379 | localhost:6379 |
-| InfluxDB | 8086 | http://localhost:8086 |
-| Kafka | 9092 | localhost:9092 |
-| Prometheus | 9090 | http://localhost:9090 |
-| Grafana | 3001 | http://localhost:3001 |
-| Mailpit | 8025 | http://localhost:8025 |
-| Solana RPC | 8899 | http://localhost:8899 |
+| Service | Port | Endpoint / URL |
+|---------|------|----------------|
+| **API services** | 4000 | http://localhost:4000 |
+| **Kong Gateway** | 8000 | http://localhost:8000 |
+| **Trading UI** | 3000 | http://localhost:3000 |
+| **Portal** | 3001 | http://localhost:3001 |
+| **Explorer** | 3002 | http://localhost:3002 |
+| **PostgreSQL** | 5434 | localhost:5434 |
+| **Redis** | 6379 | localhost:6379 |
+| **Kafka** | 9092 | localhost:9092 |
+| **Grafana** | 3001 | http://localhost:3001 (Shared with Portal?) |
+| **Solana RPC** | 8899 | http://localhost:8899 |
+
+> [!NOTE]
+> Portraits and URLs may vary based on your local `.env` configuration. Use `./scripts/app.sh status` to verify active services.
 
 ## Management Tools
 
-### 1. Unified Script (`app.sh`)
+### Unified Manager (`app.sh`)
 ```bash
-./scripts/app.sh start    # Start all services
-./scripts/app.sh stop     # Stop all services
-./scripts/app.sh status   # Check service status
-./scripts/app.sh init     # Initialize blockchain
-```
-
-### 2. Task Runner (`just`)
-```bash
-just test        # Run all tests
-just migrate     # Run database migrations
-just db-up       # Start PostgreSQL
-just clippy      # Run lint checks
-```
-
-### 3. Shell Helper (`grx.nu`)
-For Nushell users with similar functionality to `just`.
-
-## Quick Start
-
-1. **Clone & Initialize**:
-```bash
-git clone <repo-url>
-cd gridtokenx-platform-infa
-git submodule update --init --recursive
-```
-
-2. **Setup Environment**:
-```bash
-cp .env.example .env
-```
-
-3. **Launch Platform**:
-```bash
-./scripts/app.sh start
+./scripts/app.sh doctor    # Diagnostic check
+./scripts/app.sh start     # Launch everything
+./scripts/app.sh status    # Check health
+./scripts/app.sh init      # Bootstrap blockchain
 ```
 
 ## Related Workflows
 
-- [Start Development](./start-dev.md) - Start all services
-- [Stop Development](./stop-dev.md) - Stop all services
-- [Database Management](./db-manage.md) - Database commands
-- [Blockchain Init](./blockchain-init.md) - Initialize smart contracts
-- [Testing](./testing.md) - Run tests
-- [Build & Deploy](./build-deploy.md) - Build and deployment
+- [Environment Setup](./environment-setup.md) - Install prerequisites
+- [Start Development](./start-dev.md) - Launch the platform
+- [Testing](./testing.md) - Run verification suites
+- [API Development](./api-development.md) - Service implementation

@@ -384,7 +384,7 @@ This document describes the complete P2P (Peer-to-Peer) energy trading flow in t
        │
        │ Solana Transaction #1:
        │ ┌───────────────────────────────────────────────────────────┐
-       │ │ Program: Trading (5yakTtiNHXHonCPqkwh1M22jujqugCJhEkYaHAoaB6pG) │
+       │ │ Program: Trading (69dGpKu9a8EZiZ7orgfTH6CoGj9DeQHHkHBF2exSr8na) │
        │ │ Instruction: lock_to_escrow                               │
        │ │                                                           │
        │ │ Accounts:                                                 │
@@ -413,7 +413,7 @@ This document describes the complete P2P (Peer-to-Peer) energy trading flow in t
        │
        │ Solana Transaction #2:
        │ ┌───────────────────────────────────────────────────────────┐
-       │ │ Program: Energy Token (ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno) │
+       │ │ Program: Energy Token (n52aKuZwUeZAocpWqRZAJR4xFhQqAvaRE7Xepy2JBGk) │
        │ │ Instruction: transfer                                     │
        │ │                                                           │
        │ │ Accounts:                                                 │
@@ -442,7 +442,7 @@ This document describes the complete P2P (Peer-to-Peer) energy trading flow in t
        │
        │ Solana Transaction #3:
        │ ┌───────────────────────────────────────────────────────────┐
-       │ │ Program: Trading (5yakTtiNHXHonCPqkwh1M22jujqugCJhEkYaHAoaB6pG) │
+       │ │ Program: Trading (69dGpKu9a8EZiZ7orgfTH6CoGj9DeQHHkHBF2exSr8na) │
        │ │ Instruction: release_escrow                               │
        │ │                                                           │
        │ │ Accounts:                                                 │
@@ -650,9 +650,9 @@ This document describes the complete P2P (Peer-to-Peer) energy trading flow in t
 
 | Program | ID | Purpose |
 |---------|-----|---------|
-| **Trading** | `5yakTtiNHXHonCPqkwh1M22jujqugCJhEkYaHAoaB6pG` | Order book, escrow, settlement |
-| **Energy Token** | `ExZKhghptUk675rjxgHPjJZjczgWWRRwzUTQnqjPTLno` | GRID token (energy-backed) |
-| **Registry** | `DVoD5K5YRuXXF54a3b6r282jRD8RmtVHGfpw55DHFVDe` | Meter registration |
+| **Trading** | `69dGpKu9a8EZiZ7orgfTH6CoGj9DeQHHkHBF2exSr8na` | Order book, escrow, settlement |
+| **Energy Token** | `n52aKuZwUeZAocpWqRZAJR4xFhQqAvaRE7Xepy2JBGk` | GRID token (energy-backed) |
+| **Registry** | `FmvDiFUWPrwXsqo7z7XnVniKbZDcz32U5HSDVwPug89c` | Meter registration |
 
 ---
 
@@ -716,8 +716,8 @@ CREATE INDEX idx_matches_status ON order_matches(status);
 
 - [User Registration Workflow](./user-registration-workflow.md)
 - [Data Flow: Simulator to Blockchain](./data-flow-simulator-to-blockchain.md)
-- [Smart Contract Architecture](./smart-contract-architecture.md)
-- [Authentication & JWT Design](./authentication-jwt-design.md)
+- [Smart Contract Architecture](../specs/smart-contract-architecture.md)
+- [Authentication & JWT Design](../specs/authentication-jwt-design.md)
 
 ---
 

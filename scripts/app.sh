@@ -41,6 +41,7 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ANCHOR_DIR="$PROJECT_ROOT/gridtokenx-anchor"
+SERVICES_DIR="$PROJECT_ROOT/gridtokenx-api"
 GATEWAY_DIR="$PROJECT_ROOT/gridtokenx-api"
 DEV_WALLET="$GATEWAY_DIR/dev-wallet.json"
 PID_FILE="$PROJECT_ROOT/.gridtokenx.pid"
@@ -521,7 +522,7 @@ cmd_status() {
         "Loki:docker:gridtokenx-loki"
         "Tempo:docker:gridtokenx-tempo"
         "OTEL Collector:docker:gridtokenx-otel-collector"
-        "API Gateway:process:api-gateway"
+        "API Services:process:api-services"
         "Trading Service:process:gridtokenx-trading-service|target/debug/gridtokenx-trading-service"
         "Oracle Bridge:process:gridtokenx-oracle-bridge"
         "Solana Validator:process:solana-test-validator"
@@ -570,9 +571,9 @@ cmd_status() {
     
     local http_code=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/health" 2>/dev/null || echo "000")
     if [ "$http_code" == "200" ]; then
-        echo -e "API Gateway ($API_URL): ${GREEN}✓ Ready${NC}"
+        echo -e "API Services ($API_URL): ${GREEN}✓ Ready${NC}"
     else
-        echo -e "API Gateway ($API_URL): ${RED}✗ Unreachable${NC} (HTTP $http_code)"
+        echo -e "API Services ($API_URL): ${RED}✗ Unreachable${NC} (HTTP $http_code)"
     fi
 
     if curl -s "http://localhost:3001/api/health" > /dev/null 2>&1; then
@@ -814,7 +815,7 @@ start_core_services() {
     cd "$PROJECT_ROOT"
     docker-compose up -d postgres redis mailpit kong
     # Ensure Docker versions of application services are stopped to prevent port conflicts (native execution preferred)
-    docker stop gridtokenx-trading-service gridtokenx-api-gateway gridtokenx-iam-service >/dev/null 2>&1 || true
+    docker stop gridtokenx-trading-service gridtokenx-api-services gridtokenx-iam-service gridtokenx-oracle-bridge >/dev/null 2>&1 || true
     # Force Kong to reload configuration in case kong.yml changed
     docker restart gridtokenx-kong >/dev/null 2>&1 || true
     wait_for_postgres
@@ -888,12 +889,12 @@ start_application_services() {
             "$PROJECT_ROOT/scripts/logs/trading.log"
         wait_for_port "Trading gRPC" 8092 60
 
-        # 3. API Gateway Node
-        run_in_background "API Gateway" \
-            "DATABASE_URL=$DATABASE_URL PORT=4000 ENABLE_SETTLEMENT_PROCESSOR=false IAM_SERVICE_URL=http://127.0.0.1:8080 IAM_GRPC_URL=http://127.0.0.1:8090 $PROJECT_ROOT/target/debug/api-gateway" \
+        # 3. API Services Node
+        run_in_background "API Services" \
+            "DATABASE_URL=$DATABASE_URL PORT=4000 ENABLE_SETTLEMENT_PROCESSOR=false IAM_SERVICE_URL=http://127.0.0.1:8080 IAM_GRPC_URL=http://127.0.0.1:8090 $PROJECT_ROOT/target/debug/api-services" \
             "$PROJECT_ROOT" \
-            "$PROJECT_ROOT/scripts/logs/api-gateway.log"
-        wait_for_port "API Gateway" 4000 60
+            "$PROJECT_ROOT/scripts/logs/api-services.log"
+        wait_for_port "API Services" 4000 60
 
         # 4. Oracle Bridge (Smart Meter to Solana Synchronization)
         run_in_background "Oracle Bridge" \
@@ -969,9 +970,9 @@ start_application_services() {
         # 3. Oracle Bridge (Smart Meter to Solana Synchronization)
         run_in_terminal "Oracle Bridge" "IAM_SERVICE_URL=http://127.0.0.1:8090 GRIDTOKENX_API_KEYS=\"engineering-department-api-key-2025\" RUST_LOG=info $PROJECT_ROOT/target/debug/gridtokenx-oracle-bridge > $PROJECT_ROOT/scripts/logs/oracle-bridge.log 2>&1" "$PROJECT_ROOT"
 
-        # 4. API Gateway Nodes
+        # 4. API Services Nodes
         # IAM_SERVICE_URL: REST (8080), IAM_GRPC_URL: gRPC (8090)
-        run_in_terminal "API Gateway Node 1" "PORT=4000 ENABLE_SETTLEMENT_PROCESSOR=false IAM_SERVICE_URL=http://127.0.0.1:8080 IAM_GRPC_URL=http://127.0.0.1:8090 $PROJECT_ROOT/target/debug/api-gateway > $PROJECT_ROOT/scripts/logs/api-node-1.log 2>&1" "$PROJECT_ROOT"
+        run_in_terminal "API Services Node 1" "PORT=4000 ENABLE_SETTLEMENT_PROCESSOR=false IAM_SERVICE_URL=http://127.0.0.1:8080 IAM_GRPC_URL=http://127.0.0.1:8090 $PROJECT_ROOT/target/debug/api-services > $PROJECT_ROOT/scripts/logs/api-node-1.log 2>&1" "$PROJECT_ROOT"
 
         # Wait for the Kong proxy (now on 4001)
         wait_for_service "Kong Gateway" "http://localhost:4001/health" 60 2
@@ -1086,7 +1087,7 @@ cmd_start() {
     # Step 1: Cleanup native service processes (run via direct command)
     log_info "Cleaning up existing native processes..."
     pkill -f "solana-test-validator" 2>/dev/null || true
-    pkill -f "api-gateway" 2>/dev/null || true
+    pkill -f "api-services" 2>/dev/null || true
     pkill -f "gridtokenx-trading-service" 2>/dev/null || true
     pkill -f "gridtokenx-oracle-bridge" 2>/dev/null || true
     pkill -f "gridtokenx-iam-service" 2>/dev/null || true
@@ -1158,8 +1159,8 @@ cmd_start() {
     echo ""
     log_success "Development environment launched!"
     echo ""
-    echo -e "${CYAN}Kong Gateway (Unified Port 4001):${NC}"
-    echo "  • API Gateway:   http://localhost:4001/api/v1"
+    echo -e "${CYAN}API Services (Unified Port 4001):${NC}"
+    echo "  • API Services:   http://localhost:4001/api/v1"
     echo "  • IAM Service:   http://localhost:4001/iam"
     echo "  • Trading API:   http://localhost:4001/trading"
     echo "  • Oracle Bridge: http://localhost:4001/oracle"
@@ -1168,8 +1169,8 @@ cmd_start() {
     echo "  • Metrics:       http://localhost:4001/metrics-admin"
     echo "  • Grafana:       http://localhost:4001/grafana"
     echo ""
-    echo -e "${CYAN}API Gateway (Direct Port 4000):${NC}"
-    echo "  • API Gateway:   http://localhost:4000/api/v1"
+    echo -e "${CYAN}API Services (Direct Port 4000):${NC}"
+    echo "  • API Services:   http://localhost:4000/api/v1"
     echo "  • Health:        http://localhost:4000/health"
     echo ""
     echo -e "${CYAN}Frontend UIs:${NC}"
@@ -1179,7 +1180,7 @@ cmd_start() {
     echo "  • Simulator UI:  http://localhost:8085"
     echo ""
     echo -e "${CYAN}Service Logs:${NC}"
-    echo "  • API Gateway:   $PROJECT_ROOT/scripts/logs/api-gateway.log"
+    echo "  • API Services:   $PROJECT_ROOT/scripts/logs/api-services.log"
     echo "  • IAM Service:   $PROJECT_ROOT/scripts/logs/iam.log"
     echo "  • Trading Svc:   $PROJECT_ROOT/scripts/logs/trading.log"
     echo "  • Oracle Bridge: $PROJECT_ROOT/scripts/logs/oracle-bridge.log"

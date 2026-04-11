@@ -4,9 +4,11 @@ description: Start the GridTokenX development environment
 
 # Start Development Environment
 
-This workflow starts all required services for local development.
+This workflow starts all required services for the GridTokenX platform using the **Unified Application Manager**.
 
-## Quick Command
+## Primary Command
+
+The `./scripts/app.sh` script is the "one true way" to start the platform. It handles infrastructure, blockchain initialization, and service orchestration.
 
 // turbo
 
@@ -14,32 +16,48 @@ This workflow starts all required services for local development.
 ./scripts/app.sh start
 ```
 
-## What This Script Does
+## Advanced Startup Options
 
-1. **Cleanup** - Stops any existing validator and API Gateway processes
-2. **Docker Services** - Ensures PostgreSQL and Redis are running
-3. **Solana Validator** - Starts `solana-test-validator` with `--reset` flag
-4. **Fund Wallets** - Airdrops SOL to default and dev wallets
-5. **Create Token** - Creates SPL energy token with dev-wallet as mint authority
-6. **Update Config** - Updates .env files with correct token mint address
-7. **Build Gateway** - Compiles the API Gateway if needed
-8. **Start Gateway** - Launches the API Gateway with proper environment
+| Scenario | Command |
+|----------|---------|
+| **Backends Only** | `./scripts/app.sh start --skip-ui` |
+| **Infrastructure Only** | `./scripts/app.sh start --docker-only` |
+| **Native Development** | `./scripts/app.sh start --native-apps` (Fastest for macOS) |
+| **No Blockchain** | `./scripts/app.sh start --skip-solana` |
 
-## Services Started
+## Startup Sequence
+1. **Health Check**: Runs `doctor` to verify OrbStack and dependencies.
+2. **Infrastructure**: Launches PostgreSQL, Redis, Kafka, and RabbitMQ via Docker.
+3. **Solana**: Starts the local validator with the required programs pre-loaded.
+4. **Bootstrap**: Initializes the energy token mint and registers authority keys.
+5. **Services**: Launches API, IAM, Trading, and Oracle Bridge services.
+6. **Frontend**: Launches Trading UI and Explorer.
 
-| Service          | URL                            |
-| ---------------- | ------------------------------ |
-| Solana Validator | http://localhost:8899          |
-| API Gateway      | http://localhost:4000          |
-| Swagger Docs     | http://localhost:4000/api/docs |
-| PostgreSQL       | localhost:5432                 |
-| Redis            | localhost:6379                 |
+## Service Access Map
 
-## Notes
+| Component | URL / Port | Purpose |
+|-----------|------------|---------|
+| **API Services** | http://localhost:4000 | Primary Backend Entry |
+| **Kong Gateway** | http://localhost:8000 | Production-like Gateway |
+| **Trading UI** | http://localhost:3000 | User Trading Platform |
+| **Explorer** | http://localhost:3002 | Blockchain History |
+| **Grafana** | http://localhost:3001 | Observability Dashboards |
+| **Solana RPC** | http://localhost:8899 | Blockchain RPC Endpoint |
 
-- The script creates a fresh SPL token on each run
-- Dev wallet keypair is at `gridtokenx-apigateway/dev-wallet.json` (or repo root `dev-wallet.json` when used by Docker)
-- Token mint address is automatically updated in .env files
-- **New Terminal tabs** will be opened for API Gateway, Simulator, and Trading UI
-- Use `./scripts/app.sh start` to stop background services (Validator, Postgres, Redis)
-- You may need to manually close the extra Terminal tabs/windows
+## Verification
+After starting, check the status of all processes:
+
+// turbo
+
+```bash
+./scripts/app.sh status
+```
+
+## Logs
+To view logs for all services in real-time:
+
+// turbo
+
+```bash
+./scripts/app.sh logs
+```

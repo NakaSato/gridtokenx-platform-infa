@@ -4,212 +4,101 @@ description: Run tests for all GridTokenX components
 
 # Testing
 
-Run tests across all GridTokenX components: Anchor programs, Rust services, and frontend.
+GridTokenX follows a rigorous testing strategy across Anchor smart contracts, Rust microservices, and end-to-end integration flows.
 
 ## Quick Commands
 
 // turbo
 
 ```bash
-# All tests
+# Run all unit tests across all services
 just test
 
-# All tests including integration tests
+# Run all integration tests (Requires Solana & DB)
 ./scripts/run_integration_tests.sh
 
-# Anchor tests only
-cd gridtokenx-anchor && anchor test --skip-build
-
-# API Gateway tests
+# Run specific service tests
 cd gridtokenx-api && cargo test
-
-# Trading Service tests
-cd gridtokenx-trading-service && cargo test
-
-# IAM Service tests
 cd gridtokenx-iam-service && cargo test
+cd gridtokenx-trading-service && cargo test
+cd gridtokenx-oracle-bridge && cargo test
+
+# Run Anchor smart contract tests
+cd gridtokenx-anchor && anchor test
 ```
 
-## Test Categories
+## Test Levels
 
 ### 1. Unit Tests
-
-Fast tests that don't require external services:
-
+Stateless tests that verify business logic without external dependencies.
 ```bash
-# Rust services unit tests
+# Fast feedback loop
 just test
-
-# Individual service tests
-cd gridtokenx-api && cargo test --lib
-cd gridtokenx-iam-service && cargo test --lib
-cd gridpointx-trading-service && cargo test --lib
 ```
 
-### 2. Integration Tests
-
-Require running services (PostgreSQL, Redis, Solana validator):
-
+### 2. Microservice Integration Tests
+Tests that verify the interaction between a service and its persistence layer (PostgreSQL/Redis/Kafka).
 ```bash
-# Start required services
-./scripts/app.sh start
-
-# Run integration tests
-./scripts/run_integration_tests.sh
-
-# API Gateway integration tests
+# Run service-specific integration tests
 cd gridtokenx-api
 cargo test --test '*' -- --ignored
 ```
 
-### 3. Anchor Program Tests
+### 3. Cross-Service (ConnectRPC) Tests
+Verifies the communication between the **API services** and domain services via ConnectRPC.
+```bash
+# Example: Testing the IAM integration via API
+cargo test -p gridtokenx-api --test test_iam_integration
+```
 
+### 4. Smart Contract Tests
+Anchor tests written in TypeScript to verify on-chain state transitions.
 ```bash
 cd gridtokenx-anchor
-
-# Build and test
-anchor test
-
-# Skip build if already built
 anchor test --skip-build
-
-# With coverage
-anchor test --coverage
 ```
 
-### 4. End-to-End Tests
-
-Full system tests simulating real user scenarios:
-
-```bash
-# E2E trading flow
-./gridtokenx-api/tests/scripts/test_e2e_trading.sh
-
-# High frequency trading test
-./gridtokenx-api/tests/scripts/test_hft_throughput.sh
-
-# Load test with 1000 users
-./gridtokenx-api/tests/scripts/test_load_1000.sh
-
-# Market administration test
-./gridtokenx-api/tests/scripts/test_market_admin.sh
-```
-
-## Test Scripts Reference
+### 5. Platform E2E Tests
+Simulates a full cycle from **Edge Ingestion** → **Oracle Bridge** → **Trading Matching** → **Solana Settlement**.
 
 | Script | Purpose |
 |--------|---------|
-| `test_api_integration.sh` | API endpoint integration |
-| `test_e2e_trading.sh` | Complete trading flow |
-| `test_dca_api.sh` | Dollar-cost averaging |
-| `test_settlement_p2p.sh` | P2P settlement |
-| `test_zone_sharding.sh` | Zone-based sharding |
-| `test_hft_multi_user.sh` | Multi-user HFT |
-| `test_village_scenario.sh` | Village microgrid |
-| `simulate_grid_readings.sh` | Smart meter simulation |
-| `register_55_users.sh` | Bulk user registration |
-
-## Running Specific Tests
-
-### Filter by Name
-```bash
-# Run tests matching pattern
-cargo test test_user_registration
-cargo test trading::order_matching
-```
-
-### Run with Output
-```bash
-# Show stdout during tests
-cargo test -- --nocapture
-
-# Show slow tests
-cargo test -- --report-time
-```
-
-### Run with Coverage
-```bash
-# Install cargo-tarpaulin
-cargo install cargo-tarpaulin
-
-# Run with coverage
-cargo tarpaulin --out Html
-```
+| `test_edge_protocol.sh` | Verifies Ed25519 signing from edge to oracle |
+| `test_e2e_trading.sh` | Verifies full P2P order matching and settlement |
+| `stress_test_20k.sh` | Performance verification for telemetry persistence |
 
 ## Test Environment Setup
 
-### Required Services
-```bash
-# Start minimal test environment
-docker-compose up -d postgres redis
+// turbo
 
-# Start Solana validator
-solana-test-validator --reset
+```bash
+# Launch minimal test infrastructure
+./scripts/app.sh start --docker-only --skip-solana
 ```
 
-### Environment Variables
+### Required Variables
+Ensure your `.env` is configured for the test environment:
 ```bash
-export TEST_MODE=true
-export DATABASE_URL=postgresql://gridtokenx_user:gridtokenx_password@localhost:5434/gridtokenx
-export REDIS_URL=redis://localhost:6379
-export SOLANA_RPC_URL=http://localhost:8899
+TEST_MODE=true
+DATABASE_URL=postgresql://gridtokenx_user:password@localhost:5434/gridtokenx_test
+SOLANA_RPC_URL=http://localhost:8899
 ```
 
-## Continuous Testing
+## Advanced Verification
 
-### Watch Mode
+### Output & Logs
+To see internal logs during test execution:
 ```bash
-# Install cargo-watch
-cargo install cargo-watch
-
-# Watch and run tests on change
-cargo watch -x test
+RUST_LOG=debug cargo test -- --nocapture
 ```
 
-### Pre-commit Checks
+### Code Coverage
+We use `tarpaulin` for Rust coverage reports:
 ```bash
-# Format check
-cargo fmt --check
-
-# Lint check
-cargo clippy -- -D warnings
-
-# Run tests
-just test
-```
-
-## Troubleshooting
-
-### Database Connection Errors
-```bash
-# Check PostgreSQL is running
-docker ps | grep postgres
-
-# Test connection
-docker exec gridtokenx-postgres pg_isready -U gridtokenx_user
-```
-
-### Solana Validator Issues
-```bash
-# Check validator health
-curl http://localhost:8899/health
-
-# Restart validator
-pkill -f solana-test-validator
-solana-test-validator --reset
-```
-
-### Test Timeout
-```bash
-# Increase test timeout
-cargo test -- --test-threads=1
-
-# Run tests sequentially
-cargo test -- --test-threads=1
+cargo tarpaulin --out Html
 ```
 
 ## Related Workflows
-
-- [Start Development](./start-dev.md) - Start test environment
-- [Database Management](./db-manage.md) - Database setup
-- [Build & Deploy](./build-deploy.md) - Build before testing
+- [Debugging](./debugging.md) - How to analyze why a test failed.
+- [Start Development](./start-dev.md) - Preparing your local environment.
+- [Build & Deploy](./build-deploy.md) - Automated CI testing.

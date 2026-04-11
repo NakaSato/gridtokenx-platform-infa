@@ -4,50 +4,72 @@ description: How to use and manage the Grafana Observability Stack (LGT)
 
 # Grafana Observability Stack (LGT)
 
-This workflow describes how to manage the Prometheus, Loki, and Tempo stack used for observability in GridTokenX.
+GridTokenX uses the **LGT Stack** (Loki, Grafana, Tempo) for unified observability. This workflow guides you through analyzing metrics, logs, and traces.
 
-## 1. Starting the Stack
+## 1. Stack Components
 
-The monitoring stack is managed via Docker Compose.
+- **Grafana (Port 3001)**: The unified visualization dashboard.
+- **Prometheus (Port 9090)**: Time-series database for metrics.
+- **Loki (Port 3100)**: Log aggregation system.
+- **Tempo (Port 3200)**: Distributed tracing backend.
+- **OTEL Collector (Port 4317/4318)**: OpenTelemetry ingestion gateway.
+
+## 2. Starting the Stack
+
+The stack is managed by the unified application script but can be launched independently:
+
+// turbo
 
 ```bash
-docker-compose up -d prometheus grafana loki tempo otel-collector
+./scripts/app.sh start --docker-only
 ```
 
-## 2. Accessing UIs
+## 3. Telemetry Exploration
 
-| Service | URL | Credentials |
-| :--- | :--- | :--- |
-| **Grafana** | [http://localhost:3001](http://localhost:3001) | `admin` / `admin` |
-| **Prometheus** | [http://localhost:9090](http://localhost:9090) | None |
-| **Loki** | [http://localhost:3100/ready](http://localhost:3100/ready) | None (Health Check) |
-| **Tempo** | [http://localhost:3200/ready](http://localhost:3200/ready) | None (Health Check) |
+### Viewing Logs in Loki
+1. Navigate to **Explore** in Grafana.
+2. Select **Loki**.
+3. Use labels to find logs: `{container_name="gridtokenx-api-services"}`.
 
-## 3. Viewing Telemetry in Grafana
-
-1.  Open **Grafana** ([http://localhost:3001](http://localhost:3001)).
-2.  Go to **Explore** in the left sidebar.
-3.  Select the datasource from the dropdown:
-    *   **Prometheus**: For metrics (CPU, memory, custom app metrics).
-    *   **Loki**: For application and container logs.
-    *   **Tempo**: For distributed trace search and visualization.
+### Distributed Tracing in Tempo
+1. Navigate to **Explore** in Grafana.
+2. Select **Tempo**.
+3. Use the **Search** tab to find traces by service name or custom tags.
+4. **Service Graph**: View the interaction map between services to find bottlenecks.
 
 ## 4. Verification
 
-To verify that telemetry is being ingested:
+### Check Ingestion Health
+Verify that the OTEL Collector is receiving data:
 
-- **Metrics**: Search for `up` or `process_cpu_seconds_total` in Prometheus/Grafana.
-- **Logs**: In Loki, search with label `{job="otel-collector"}` or `{container_name="gridtokenx-api-gateway"}`.
-- **Traces**: In Tempo, use the "TraceQL" or "Search" tab to find spans from `gridtokenx-api-gateway`, `iam-service`, etc.
+// turbo
 
-## 5. Troubleshooting
+```bash
+docker logs gridtokenx-otel-collector
+```
 
-- **Check OTEL Collector Logs**:
-    ```bash
-    docker logs -f gridtokenx-otel-collector
-    ```
-- **Check Exporter Health**: Verify that the endpoints labeled in `otel-collector-config.yaml` are reachable from within the Docker network.
-- **Reset Data**: To clear all telemetry data and start fresh:
-    ```bash
-    docker-compose down -v prometheus_data loki_data tempo_data grafana_data
-    ```
+Look for "Receiver: grpc" or "Exporter: prometheus" activity.
+
+### Data Source Health
+In Grafana → Administration → Data Sources, ensure **Solana_Prometheus**, **Loki**, and **Tempo** all pass the "Save & Test" check.
+
+## 5. Persistence & Resets
+
+Telemetry data is persisted in Docker volumes. To reset all monitoring data:
+
+// turbo
+
+```bash
+docker-compose down -v
+# This removes: grafana_data, prometheus_data, loki_data, etc.
+```
+
+## 6. Troubleshooting
+
+- **No Metrics**: Check if the service has `OTEL_EXPORTER_OTLP_ENDPOINT` set to `http://gridtokenx-otel-collector:4317`.
+- **No Logs**: Ensure the service in `docker-compose.yml` uses the `json-file` logging driver (Loki scrapes these files).
+- **Latency High**: Check Tempo spans for "Database Query" or "Solana RPC" to identify the slow component.
+
+## Related Workflows
+- [Monitoring](./monitoring.md) - General metrics and dashboard list.
+- [Debugging](./debugging.md) - Using LGT to solve bugs.

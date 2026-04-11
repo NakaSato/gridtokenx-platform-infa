@@ -4,363 +4,101 @@ description: Debug and troubleshoot GridTokenX services
 
 # Debugging & Troubleshooting
 
-Debug and troubleshoot issues across GridTokenX services.
+The decentralized nature of GridTokenX means issues can span across Edge IoT, Microservices, and Blockchain layers. Use this guide to systematically isolate and resolve faults.
 
 ## Quick Diagnostics
 
 // turbo
 
 ```bash
-# Check system status
+# 1. Check system health and PIDs
 ./scripts/app.sh status
 
-# Run system doctor
+# 2. Run the environment diagnostic tool
 ./scripts/app.sh doctor
 
-# View all logs
+# 3. View global logs (if everything is in Docker)
 docker-compose logs -f
 ```
 
-## Service Health Checks
+## The Troubleshooting Hierarchy
 
-### API Gateway
+### 1. Environment & Infrastructure
+Most local issues are caused by port conflicts or OrbStack state.
+- **Port Conflict**: Check ports `4000`, `8000`, `5434`, `6379`, `8899`.
+- **OrbStack**: Ensure `docker context use orbstack` is active.
+- **Fix**: Run `./scripts/app.sh doctor` and follow the suggestions.
 
+### 2. Service-Level Errors
+If a service is running but failing requests:
+- **Metrics**: Check `http://localhost:3001` (Grafana) for elevated error rates.
+- **Logs**: Use **Loki** to filter by service: `{container_name="gridtokenx-api-services"}`.
+- **Fix**: Check `.env` secrets and database migration status.
+
+### 3. Distributed Faults (Traces)
+If a request is slow or failing deep in the stack:
+- **Traces**: Open **Tempo** in Grafana. Search for the `trace_id` found in your API logs.
+- **Fix**: Identify the specific service (IAM, Trading, or Solana) where the latency spikes.
+
+## Service-Specific Troubleshooting
+
+### API services (Gateway)
+- **Issue**: Handlers return 500.
+- **Check**: `tail -f gridtokenx-api/api.log` (if native) or `docker logs gridtokenx-api-services`.
+- **Cause**: Usually a gRPC timeout when talking to `iam-service` or `trading-service`.
+
+### IAM Service (Identity/Wallets)
+- **Issue**: Wallet generation fails.
+- **Cause**: Typically an incorrect or missing `ENCRYPTION_MASTER_SECRET` in `.env`.
+
+### Oracle Bridge (IoT)
+- **Issue**: Telemetry not appearing in dashboards.
+- **Check**: `docker logs gridtokenx-oracle-bridge`.
+- **Cause**: Signature verification failure (Ed25519) or Kafka producer backlog.
+
+### Solana Blockchain
+- **Issue**: Transactions failing or stalling.
+- **Diagnosis**: 
+  ```bash
+  # Check local validator health
+  solana balance --url http://localhost:8899
+  # View program logs in real-time
+  solana logs --url http://localhost:8899
+  ```
+
+## Advanced Debugging Tools
+
+### 1. Enabling Debug Logs
 ```bash
-# Health endpoint
-curl http://localhost:4000/health
-
-# Check API version
-curl http://localhost:4000/api/v1/version
-
-# Test database connection
-curl http://localhost:4000/api/v1/admin/health/db
-```
-
-### Blockchain
-
-```bash
-# Solana RPC health
-curl http://localhost:8899/health
-
-# Get cluster version
-solana cluster-version --url http://localhost:8899
-
-# Get balance
-solana balance --url http://localhost:8899
-```
-
-### Database
-
-```bash
-# PostgreSQL health
-docker exec gridtokenx-postgres pg_isready -U gridtokenx_user
-
-# Redis health
-docker exec gridtokenx-redis redis-cli ping
-
-# InfluxDB health
-curl http://localhost:8086/health
-```
-
-## Log Analysis
-
-### View Service Logs
-
-```bash
-# API Gateway
-docker logs -f gridtokenx-api-gateway
-
-# All Rust services
-docker logs -f gridtokenx-iam-service
-docker logs -f gridtokenx-trading-service
-
-# Smart Meter Simulator
-docker logs -f gridtokenx-smartmeter-simulator
-
-# Solana Validator
-tail -f scripts/logs/validator.log
-```
-
-### Filter Logs by Level
-
-```bash
-# Error logs only
-docker logs gridtokenx-api-gateway 2>&1 | grep ERROR
-
-# Warning logs
-docker logs gridtokenx-api-gateway 2>&1 | grep WARN
-```
-
-### Real-time Log Streaming
-
-```bash
-# All services
-docker-compose logs -f
-
-# Specific services
-docker-compose logs -f api-gateway postgres redis
-```
-
-## Common Issues
-
-### 1. Database Connection Errors
-
-**Symptoms**: API returns 500, connection timeout
-
-**Diagnosis**:
-```bash
-# Check PostgreSQL is running
-docker ps | grep postgres
-
-# Test connection
-docker exec gridtokenx-postgres \
-  psql -U gridtokenx_user -d gridtokenx -c "SELECT 1"
-
-# Check connection pool
-docker logs gridtokenx-api-gateway | grep pool
-```
-
-**Fix**:
-```bash
-# Restart PostgreSQL
-docker-compose restart postgres
-
-# Check DATABASE_URL
-echo $DATABASE_URL
-
-# Verify migrations
-cd gridtokenx-api
-sqlx migrate info
-```
-
-### 2. Redis Connection Errors
-
-**Symptoms**: Cache misses, session errors
-
-**Diagnosis**:
-```bash
-# Check Redis is running
-docker exec gridtokenx-redis redis-cli ping
-
-# Check memory usage
-docker exec gridtokenx-redis redis-cli INFO memory
-```
-
-**Fix**:
-```bash
-# Restart Redis
-docker-compose restart redis
-
-# Clear cache
-docker exec gridtokenx-redis redis-cli FLUSHALL
-```
-
-### 3. Solana Validator Issues
-
-**Symptoms**: Transaction failures, RPC timeout
-
-**Diagnosis**:
-```bash
-# Check validator is running
-ps aux | grep solana-test-validator
-
-# Check RPC endpoint
-curl http://localhost:8899/health
-
-# Check logs
-tail -f scripts/logs/validator.log
-```
-
-**Fix**:
-```bash
-# Restart validator
-pkill -f solana-test-validator
-solana-test-validator --reset --ledger ./test-ledger
-
-# Fund wallets
-solana airdrop 100 <WALLET_ADDRESS> --url http://localhost:8899
-```
-
-### 4. Kafka Message Backlog
-
-**Symptoms**: Delayed processing, high latency
-
-**Diagnosis**:
-```bash
-# Check consumer lag
-docker exec gridtokenx-kafka \
-  /opt/kafka/bin/kafka-consumer-groups.sh \
-  --bootstrap-server localhost:9092 \
-  --describe --group gridtokenx-apigateway
-
-# Check topic stats
-docker exec gridtokenx-kafka \
-  /opt/kafka/bin/kafka-run-class.sh \
-  kafka.tools.GetOffsetShell \
-  --broker-list localhost:9092 \
-  --topic meter-readings
-```
-
-**Fix**:
-```bash
-# Restart consumer
-docker-compose restart api-gateway
-
-# Increase consumers
-# Edit docker-compose.yml to add more consumer instances
-```
-
-### 5. High Memory Usage
-
-**Symptoms**: Slow responses, OOM errors
-
-**Diagnosis**:
-```bash
-# Check container memory
-docker stats
-
-# Check Rust service memory
-ps aux | grep api-gateway
-```
-
-**Fix**:
-```bash
-# Restart service
-docker-compose restart api-gateway
-
-# Increase memory limits in docker-compose.yml
-# Or reduce connection pool sizes
-```
-
-### 6. Port Conflicts
-
-**Symptoms**: Service won't start, address already in use
-
-**Diagnosis**:
-```bash
-# Find process using port
-lsof -i :4000
-lsof -i :5432
-lsof -i :8899
-```
-
-**Fix**:
-```bash
-# Kill conflicting process
-kill -9 <PID>
-
-# Or change port in docker-compose.yml
-```
-
-## Debugging Tools
-
-### Rust Service Debugging
-
-```bash
-# Enable debug logging
+# Native
 export RUST_LOG=debug
-docker-compose restart api-gateway
+cargo run
 
-# Run with backtrace
-export RUST_BACKTRACE=1
-cargo run --bin api-gateway
+# Docker
+# Update environment: RUST_LOG=debug in docker-compose.yml
 ```
 
-### Database Query Debugging
-
+### 2. Manual SQL Access
 ```bash
-# Enable query logging
-docker exec gridtokenx-postgres psql \
-  -U gridtokenx_user -d gridtokenx \
-  -c "SET log_min_duration_statement = 0"
-
-# View slow queries
-docker logs gridtokenx-postgres | grep duration
+./scripts/app.sh db-shell
+# Or
+docker exec -it gridtokenx-postgres psql -U gridtokenx_user -d gridtokenx
 ```
 
-### Blockchain Debugging
-
+### 3. Redis Inspect
+Check order book state or session cache:
 ```bash
-# Enable Anchor debug logging
-export ANCHOR_DEBUG=1
-anchor test
-
-# Check program logs
-solana logs --url http://localhost:8899
+docker exec -it gridtokenx-redis redis-cli
+> KEYS *
+> HGETALL order:book:1
 ```
 
-### Network Debugging
-
-```bash
-# Check network connectivity
-docker network inspect gridtokenx-network
-
-# Test inter-container communication
-docker exec gridtokenx-api-gateway \
-  curl -v http://postgres:5432
-
-# Check DNS resolution
-docker exec gridtokenx-api-gateway \
-  getent hosts postgres
-```
-
-## Performance Profiling
-
-### CPU Profiling
-
-```bash
-# Install cargo-flamegraph
-cargo install flamegraph
-
-# Run with profiling
-cd gridtokenx-api
-flamegraph --bin api-gateway
-```
-
-### Memory Profiling
-
-```bash
-# Install cargo-heaptrack
-cargo install heaptrack
-
-# Run with profiling
-heaptrack cargo run --bin api-gateway
-```
-
-### Database Query Analysis
-
-```bash
-# Enable pg_stat_statements
-docker exec gridtokenx-postgres psql \
-  -U gridtokenx_user -d gridtokenx \
-  -c "SELECT * FROM pg_stat_statements ORDER BY total_time DESC LIMIT 10"
-```
-
-## Remote Debugging
-
-### Attach Debugger to Running Service
-
-```bash
-# Find process ID
-ps aux | grep api-gateway
-
-# Attach GDB
-gdb -p <PID>
-```
-
-### Docker Exec for Debugging
-
-```bash
-# Enter running container
-docker exec -it gridtokenx-api-gateway bash
-
-# Run commands inside container
-docker exec -it gridtokenx-api-gateway \
-  curl -v http://localhost:4001/health
-```
+## Verification
+After applying a fix, always verify with:
+1. `./scripts/app.sh status`
+2. `just test` (for the specific service)
 
 ## Related Workflows
-
-- [Testing](./testing.md) - Run tests to verify fixes
-- [Docker Services](./docker-services.md) - Manage containers
-- [Start Development](./start-dev.md) - Restart services
+- [Monitoring](./monitoring.md) - For real-time health visualization.
+- [Testing](./testing.md) - For verifying fixes with automation.
+- [Start Development](./start-dev.md) - For resetting the environment.

@@ -6,49 +6,49 @@ groups:
   # =============================================================================
   # API Gateway Alerts
   # =============================================================================
-  - name: gridtokenx.api_gateway.alerts
+  - name: gridtokenx.api_services.alerts
     rules:
     - alert: APIHighErrorRate
-      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-api", status_code="ERROR"}[5m])) / sum(rate(signoz_calls_total{service_name="gridtokenx-api"}[5m])) > 0.05
+      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-api-services", status_code="ERROR"}[5m])) / sum(rate(signoz_calls_total{service_name="gridtokenx-api-services"}[5m])) > 0.05
       for: 2m
       labels:
         severity: critical
         team: platform
-        component: api-gateway
+        component: api-services
       annotations:
         summary: "API Gateway error rate is critically high"
         description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%) for the last 2 minutes. Immediate investigation required."
 
     - alert: APIHighLatency
-      expr: histogram_quantile(0.95, sum(rate(signoz_spans_duration_seconds_bucket{service_name="gridtokenx-api"}[5m])) by (le)) > 2
+      expr: histogram_quantile(0.95, sum(rate(signoz_spans_duration_seconds_bucket{service_name="gridtokenx-api-services"}[5m])) by (le)) > 2
       for: 5m
       labels:
         severity: warning
         team: platform
-        component: api-gateway
+        component: api-services
       annotations:
         summary: "API Gateway P95 latency is high"
         description: "P95 latency is {{ $value | humanizeDuration }} (threshold: 2s). Check database connections and external service dependencies."
 
     - alert: APIEndpointHighLatency
       expr: |
-        histogram_quantile(0.95, sum(rate(signoz_spans_duration_seconds_bucket{service_name="gridtokenx-api"}[5m])) by (le, name)) > 5
+        histogram_quantile(0.95, sum(rate(signoz_spans_duration_seconds_bucket{service_name="gridtokenx-api-services"}[5m])) by (le, name)) > 5
       for: 10m
       labels:
         severity: warning
         team: platform
-        component: api-gateway
+        component: api-services
       annotations:
         summary: "API endpoint {{ $labels.name }} has high latency"
         description: "P95 latency for {{ $labels.name }} is {{ $value | humanizeDuration }} (threshold: 5s)."
 
     - alert: APIHighRPS
-      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-api"}[1m])) > 1000
+      expr: sum(rate(signoz_calls_total{service_name="gridtokenx-api-services"}[1m])) > 1000
       for: 5m
       labels:
         severity: warning
         team: platform
-        component: api-gateway
+        component: api-services
       annotations:
         summary: "API Gateway experiencing high request volume"
         description: "Request rate is {{ $value }} req/s (threshold: 1000 req/s). Consider scaling or rate limiting."
@@ -59,7 +59,7 @@ groups:
       labels:
         severity: critical
         team: platform
-        component: api-gateway
+        component: api-services
       annotations:
         summary: "API Gateway database connection pool nearly exhausted"
         description: "Connection pool usage is {{ $value | humanizePercentage }}. Database connections may be exhausted soon."

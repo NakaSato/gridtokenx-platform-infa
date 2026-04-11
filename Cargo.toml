@@ -7,13 +7,19 @@ members = [
     "gridtokenx-trading-service",
     "gridtokenx-wasm",
     "gridtokenx-oracle-bridge",
-    "gridtokenx-edge-meter-gateway", "gridtokenx-smartmeter-simulator/src/rust_sim",
+    "gridtokenx-edge-gateway",
+    "gridtokenx-smartmeter-simulator/src/rust_sim",
 ]
 # The trading program is excluded because it historically relied on `solana-zk-token-sdk`
 # causing legacy `zeroize` conflicts, but mainly because it compiles
 # separately via `anchor build` against a BPF target.
 # Load test tool is excluded as it's a standalone benchmark utility
-exclude = ["gridtokenx-anchor/programs/trading", "tests/load-test"]
+# Edge gateway excluded due to hardware-specific dependencies (rppal, MQTT)
+exclude = [
+    "gridtokenx-anchor/programs/trading",
+    "tests/load-test",
+    "gridtokenx-edge-gateway",
+]
 resolver = "2"
 
 # =============================================================================
@@ -114,6 +120,8 @@ dotenvy = "0.15"
 validator = { version = "0.19", features = ["derive"] }
 utoipa = { version = "5.0", features = ["decimal", "chrono", "uuid"] }
 dashmap = "6.1.0"
+smallvec = { version = "1.13", features = ["union"] }
+rdkafka = { version = "0.37", features = ["zstd"] }
 futures = "0.3"
 config = "0.15.19"
 once_cell = "1.19"

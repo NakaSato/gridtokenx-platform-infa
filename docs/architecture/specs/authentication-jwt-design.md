@@ -104,7 +104,7 @@ This document describes the authentication and authorization architecture for th
        │   "role": "user",                  // Role (user, admin, ami)
        │   "exp": 1710686400,               // Expiration (24 hours)
        │   "iat": 1710600000,               // Issued at
-       │   "iss": "api-gateway"             // Issuer
+       │   "iss": "api-services"             // Issuer
        │ }
        │
        ▼
@@ -326,7 +326,7 @@ This document describes the authentication and authorization architecture for th
   "role": "user",
   "exp": 1710686400,
   "iat": 1710600000,
-  "iss": "api-gateway"
+  "iss": "api-services"
 }
 ```
 
@@ -339,7 +339,7 @@ This document describes the authentication and authorization architecture for th
 | **role** | String | User role | `user`, `admin`, `ami` |
 | **exp** | i64 | Expiration timestamp | `1710686400` |
 | **iat** | i64 | Issued at timestamp | `1710600000` |
-| **iss** | String | Issuer | `api-gateway` |
+| **iss** | String | Issuer | `api-services` |
 
 ### Signature
 
@@ -426,7 +426,7 @@ pub enum Permission {
 | **Algorithm** | HS256 (HMAC-SHA256) |
 | **Secret** | 256-bit random key (JWT_SECRET env var) |
 | **Expiration** | 24 hours (configurable) |
-| **Issuer Validation** | Must be "api-gateway" |
+| **Issuer Validation** | Must be "api-services" |
 | **Signature Verification** | Automatic on decode |
 
 ### API Key Security
@@ -739,10 +739,10 @@ mod tests {
 
 ## Related Documentation
 
-- [User Registration Workflow](./user-registration-workflow.md)
-- [P2P Trading Flow](./p2p-trading-flow.md)
+- [User Registration Workflow](../guides/user-registration-workflow.md)
+- [P2P Trading Flow](../specs/system-architecture.md#3-high-level-architecture-c4-level-2)
 - [Smart Contract Architecture](./smart-contract-architecture.md)
-- [Security Best Practices](./security-best-practices.md)
+- [Security Analysis](../../academic/07-security-analysis.md)
 
 ---
 

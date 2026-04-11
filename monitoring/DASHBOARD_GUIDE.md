@@ -26,7 +26,8 @@ This document provides a comprehensive guide to all monitoring dashboards and al
 | **Smart Meter & IoT** | `smartmeter-iot-monitor.json` | Meter readings, IoT devices, oracle bridge, data ingestion | 30s |
 | **Energy Token & REC** | `energy-token-rec-monitor.json` | Token minting, transfers, REC lifecycle, certification | 30s |
 | **Governance & Voting** | `governance-voting-monitor.json` | DAO proposals, voting, execution, participation | 30s |
-| **VPP Monitor** | `vpp-monitor.json` | Virtual Power Plant - assets, dispatch, grid services | 30s |
+| **VPP Monitor** | `vpp-monitor.json` | Virtual Power Plant - assets, dispatch, grid services, SOC | 30s |
+| **Settlement Health** | `settlement-health.json` | On-chain settlement - batching, fees, Solana latency | 10s |
 
 ### Analytics & Security Dashboards
 
@@ -52,6 +53,7 @@ docker/signoz/dashboards/
 ├── energy-token-rec-monitor.json
 ├── governance-voting-monitor.json
 ├── vpp-monitor.json
+├── settlement-health.json
 ├── user-analytics-activity.json
 └── security-audit-monitor.json
 ```
@@ -417,36 +419,34 @@ receivers:
 
 ### 10. VPP Monitor (`vpp-monitor.json`)
 
-**Purpose:** Virtual Power Plant operations and performance
+**Purpose:** Virtual Power Plant operations and performance tracking.
 
 **Key Panels:**
-- VPP KPIs (Active VPPs, Total Capacity, Grid Services, Response Time)
-- VPP Energy Aggregation
-- VPP Assets Distribution
-- Demand Response Events
-- Grid Service Revenue
-- VPP Capacity Utilization
-- VPP Participants
-- Peak Demand Reduction
-- VPP Efficiency
-- Top VPPs by Performance
-- VPP Asset Status
-- VPP Dispatch Events
-- Grid Stability Contribution
-- VPP Battery State of Charge
-- VPP Errors
-- VPP Forecast Accuracy
-- VPP Carbon Offset
-- VPP Market Participation
+- **Aggregate Cluster SOC**: Real-time gauge of average state of charge.
+- **Aggregation Events**: Total meter readings recently processed.
+- **Cluster SOC Over Time**: Historical trends of battery health per cluster.
+- **Aggregation Success Rate**: Health of the telemetry ingestion pipeline.
+- **Aggregation Latency (P99)**: Performance profiling of VPP aggregation cycles.
 
 **Variables:**
-- `vpp_id`: Filter by VPP ID
-- `asset_type`: solar, battery, ev_charger, hvac, generator, wind
-- `asset_status`: online, offline, maintenance, dispatching
+- `cluster`: Filter by VPP Cluster ID.
 
 ---
 
-### 11. User Analytics & Activity (`user-analytics-activity.json`)
+### 11. Settlement Health (`settlement-health.json`)
+
+**Purpose:** Intensive monitoring of on-chain settlement performance.
+
+**Key Panels:**
+- **Settlement Success Rate**: Core KPI for the trading-to-blockchain pipeline.
+- **Avg Batch Size**: Measures the effectiveness of match bundling.
+- **Settlement Latency vs Batch Size**: Correlation between batch density and confirmation time.
+- **Batch Size Distribution**: Histogram of transaction bundling over time.
+- **Confirmation Latency P99**: Solana network performance for GridTokenX transactions.
+
+---
+
+### 12. User Analytics & Activity (`user-analytics-activity.json`)
 
 **Purpose:** User behavior analytics and engagement tracking
 

@@ -1,0 +1,162 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "On-chain settlement health, batching efficiency, and Solana network performance",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Settlement KPIs",
+      "type": "row"
+    },
+    {
+      "id": 2,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "✅ Settlement Success Rate",
+      "description": "Ratio of successful vs failed on-chain settlements",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 0.95 }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false }
+      },
+      "targets": [
+        { "expr": "sum(rate(trading_settlements_total{success=\"true\"}[5m])) / sum(rate(trading_settlements_total[5m]))", "refId": "A" }
+      ]
+    },
+    {
+      "id": 3,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "📦 Avg Batch Size",
+      "description": "Average number of matches bundled into a single transaction",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "unit": "none"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["mean"], "values": false }
+      },
+      "targets": [
+        { "expr": "avg(gridtokenx_trading_settlement_latency_count)", "refId": "A" }
+      ]
+    },
+    {
+      "id": 4,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "⏱️ Avg confirmation Time",
+      "description": "Average time for Solana cluster to confirm a settlement txn",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["mean"], "values": false }
+      },
+      "targets": [
+        { "expr": "avg(rate(trading_blockchain_settlement_duration_ms_sum[5m]) / rate(trading_blockchain_settlement_duration_ms_count[5m])) / 1000", "refId": "A" }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 5,
+      "title": "Batching Efficiency & Cost",
+      "type": "row"
+    },
+    {
+      "id": 6,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Settlement Latency vs Batch Size",
+      "description": "How batching affects on-chain processing time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(gridtokenx_trading_settlement_latency_bucket[5m])) by (le, batch_size))", "legendFormat": "Batch: {{batch_size}} P95", "refId": "A" }
+      ]
+    },
+    {
+      "id": 7,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Batch Size Distribution",
+      "description": "Histogram of matches bundled per transaction",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        { "expr": "sum(increase(gridtokenx_trading_settlement_latency_count[1h])) by (batch_size)", "legendFormat": "{{batch_size}} matches", "refId": "A" }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 8,
+      "title": "Solana Performance Analytics",
+      "type": "row"
+    },
+    {
+      "id": 9,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Confirmation Latency P99",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 15 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum(rate(trading_blockchain_settlement_duration_ms_bucket[5m])) by (le, operation))", "legendFormat": "{{operation}} P99", "refId": "A" }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["gridtokenx", "settlement", "blockchain"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "Settlement Health",
+  "uid": "settlement-health"
+}

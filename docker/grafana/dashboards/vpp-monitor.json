@@ -1,0 +1,196 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Virtual Power Plant performance, aggregation health, and cluster SOC monitoring",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "VPP Real-time Capacity",
+      "type": "row"
+    },
+    {
+      "id": 2,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "🔋 Aggregate Cluster SOC",
+      "description": "Average State of Charge across all VPP clusters",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 20 },
+              { "color": "green", "value": 50 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["mean"], "values": false }
+      },
+      "targets": [
+        { "expr": "avg(trading_vpp_cluster_soc)", "refId": "A" }
+      ]
+    },
+    {
+      "id": 3,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "🔄 Aggregation Events (Last 1h)",
+      "description": "Total meter readings processed into VPP clusters",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "unit": "none"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false }
+      },
+      "targets": [
+        { "expr": "sum(increase(trading_vpp_aggregation_total[1h]))", "refId": "A" }
+      ]
+    },
+    {
+      "id": 4,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "⚡ Current Dispatch Mode",
+      "description": "Number of VPPs in active dispatch/flexibility mode",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false }
+      },
+      "targets": [
+        { "expr": "count(trading_vpp_cluster_soc > 0)", "refId": "A" }
+      ]
+    },
+    {
+      "id": 5,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Cluster SOC Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 },
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        { "expr": "trading_vpp_cluster_soc", "legendFormat": "Cluster: {{cluster}}", "refId": "A" }
+      ],
+      "options": { "legend": { "displayMode": "table", "placement": "right" } }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "id": 6,
+      "title": "Pipeline Health",
+      "type": "row"
+    },
+    {
+      "id": 7,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Aggregation Success Rate",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 14 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0, "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 0.99 }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "targets": [
+        { "expr": "sum(rate(trading_vpp_aggregation_total{success=\"true\"}[5m])) / sum(rate(trading_vpp_aggregation_total[5m]))", "refId": "A" }
+      ]
+    },
+    {
+      "id": 8,
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Aggregation Latency (P99)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 16, "x": 8, "y": 14 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum(rate(trading_vpp_aggregation_duration_ms_bucket[5m])) by (le, cluster))", "legendFormat": "{{cluster}} P99", "refId": "A" }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["gridtokenx", "vpp", "trading"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(trading_vpp_cluster_soc, cluster)",
+        "name": "cluster",
+        "options": [],
+        "query": "label_values(trading_vpp_cluster_soc, cluster)",
+        "refresh": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "VPP Monitor",
+  "uid": "vpp-monitor"
+}
